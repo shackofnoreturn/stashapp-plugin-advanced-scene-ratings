@@ -1,0 +1,11 @@
+{
+  "id": "stash-advanced-rating-system-plugin",
+  "name": "Advanced Rating System",
+  "description": "Rate scenes based on advanced criteria, using tags",
+  "version": "0.1.0",
+  "exec": "main.py",
+  "interface": false,
+  "requires": [],
+  "provides": [],
+  "type": "script"
+}
