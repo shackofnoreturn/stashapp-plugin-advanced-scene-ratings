@@ -56,16 +56,10 @@ def main():
     minimum_required_tags = settings["minimum_required_tags"]
     log.info(f"And here are the final categories: {categories} - and min tags: {minimum_required_tags}")
 
-    # if "mode" in json_input["args"]:
-    #     PLUGIN_ARGS = json_input["args"]["mode"]
-    #     log.info(f"JSON INPUT OUTPUT: {json_input}")
-    #     if "process_scenes" in PLUGIN_ARGS:
     #         # Process all scenes
     #         scenes = stash.find_scenes({})
     #         for scene in scenes:
     #             calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
-
-        #JUNK
             # if "scene_id" in json_input["args"]:
             #     scene = stash.find_scene(json_input["args"]["scene_id"])
             #     processScene(scene)
@@ -78,14 +72,15 @@ def main():
             stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
             # scene = stash.find_scene(id)
             # processScene(scene)
+            log.debug(f"Made it through the hook ...")
 
 
     if mode_arg == "process_scenes":
-        processScenes()
+        processScenes(stash, categories, minimum_required_tags)
     if mode_arg == "create_tags":
-        createTags(stash, categories)
+        createTags(categories)
     if mode_arg == "remove_tags":
-        removeTags(stash, categories)
+        removeTags(categories)
 
 
     # elif mode == "rate":
@@ -159,12 +154,6 @@ def find_tag(name, create=False):
         log.info(f"Found Tag: ID:{find_tag_tag['id']} Name: {find_tag_tag['name']}")
     return find_tag_tag
 
-def remove_tag():
-    remove_tag_tag = find_tag(tag_rating_parent["name"])
-    if remove_tag_tag is not None:
-        stash.destroy_tag(remove_tag_tag['id'])
-        log.info(f"Deleted Tag - ID:{remove_tag_tag['id']}: Name: {remove_tag_tag['name']}")
-
 def create_tag(obj):
     create_tag_tag = stash.create_tag(obj)
     if create_tag_tag is None:
@@ -173,7 +162,7 @@ def create_tag(obj):
         log.info(f"Created Tag: ID:{create_tag_tag['id']} Name: {create_tag_tag['name']}")
     return create_tag_tag
 
-def createTags(stash, categories):
+def createTags(categories):
     log.info(f"Ensure the needed tags exist ...")
     tag_rating_parent = find_tag(tag_rating_parent)
     if tag_rating_parent is None:
@@ -184,9 +173,9 @@ def createTags(stash, categories):
     # For each category, create category tag under Advanced Rating
     for cat in categories:
         cat_tag = find_tag(cat, create=True)
-        # if not cat_tag:
+        if not cat_tag:
             # cat_tag = stash.create_tag(name=cat, parent_id=parent_id)
-            # log.info(f"Created category tag: {cat} under Advanced Rating")
+            log.info(f"Created category tag: {cat} under Advanced Rating")
         # Create numbered child tags (1 to 5)
         for i in range(1, 6):
             num_tag_name = f"{cat}_{i}"
@@ -195,11 +184,16 @@ def createTags(stash, categories):
             #     stash.create_tag(name=num_tag_name, parent_id=cat_tag["id"])
             #     log.info(f"Created numbered tag: {num_tag_name} under {cat}")
 
-def removeTags():
+def remove_tag(name):
+    remove_tag_tag = find_tag(name)
+    if remove_tag_tag is not None:
+        stash.destroy_tag(remove_tag_tag)
+        log.info(f"Deleted Tag - ID:{remove_tag_tag['id']}: Name: {remove_tag_tag['name']}")
+
+def removeTags(categories):
     log.info(f"Removing tags ...")
-    # This function would remove specific tags from scenes or the database
-    # Implementation would depend on the specific requirements and logic needed
-    pass
+    for cat in categories:
+        cat_tag = find_tag(cat)
 
 def find_scenes(find_scenes_tag):
     scene_count, scenes = stash.find_scenes(
