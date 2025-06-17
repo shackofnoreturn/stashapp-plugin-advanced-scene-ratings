@@ -105,9 +105,9 @@ def main():
     stash = StashInterface(FRAGMENT_SERVER)
 
     # Example usage of StashInterface to find a scene
-    scene_data = stash.find_scene(1234)
+    # scene_data = stash.find_scene(1234)
     # log.info(scene_data)
-    log(f"Scene '{scene_data}'", enable_logging)
+    # log(f"Scene '{scene_data}'", enable_logging)
 
     categories, minimum_required_tags, enable_logging = get_plugin_settings(stash)
     ensure_tags_exist(stash, categories, enable_logging)
