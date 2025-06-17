@@ -1,8 +1,7 @@
 name: Advanced Rating System
 description: Rate scenes based on advanced criteria using tags
-version: 0.3.14
+version: 0.1.0
 url: https://github.com/shackofnoreturn/stashapp-plugin-advanced-scene-ratings
-
 exec:
   - python
   - "{pluginDir}/stashAppAdvancedRating.py"
@@ -24,7 +23,15 @@ hooks:
       - Scene.Update.Post
 
 tasks:
-  - name: Process all
+  - name: Process All Scenes
     description: Calculate and (re)apply ratings to all scenes
     defaultArgs:
-      mode: processScenes
+      mode: process_scenes
+  - name: Create Tags
+    description: Create tags for each rating category
+    defaultArgs:
+      mode: create_tags
+  - name: Remove Tags
+    description: Remove tags for each rating category
+    defaultArgs:
+      mode: remove_tags
