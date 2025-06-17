@@ -2,7 +2,7 @@
   name: "Advanced Rating"
   metadata:
     description: "Curate your scenes with advanced criteria instead of a singular 0 to 5 stars."
-  version: 0.2.1
+  version: 0.3.0
   date: 2025-06-17 02:00:00
   path: stashAppAdvancedRating.zip
-  sha256: 41ca203b120c0ca549b80bba05c1d306290b94deeee0fe7ede32b4689cc847fa
+  sha256: d3c9f69ebd3cf1d31b0f00aa8eb768d79e064cf9595109698f584194ec372a9e
