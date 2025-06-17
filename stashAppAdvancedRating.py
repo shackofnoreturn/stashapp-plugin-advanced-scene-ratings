@@ -29,3 +29,7 @@ def main(stash):
             #     "id": scene['id'],
             #     "rating": final_rating
             # })
+
+
+def do_logcat(args):
+    print(f"TESTING PLUGIN TASKS")

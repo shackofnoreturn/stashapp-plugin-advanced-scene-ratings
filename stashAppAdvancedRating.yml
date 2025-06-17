@@ -1,9 +1,57 @@
-name: StashApp Advanced Rating System
+name: Advanced Rating System
 description: Rate scenes based on advanced criteria using tags
 version: 0.0.1
 url: https://github.com/shackofnoreturn/stashapp-plugin-advanced-scene-ratings
+# ui:
+#   requires:
+#     - CommunityScriptsUILibrary
+#   javascript:
+#     - audioTab.js
 
 exec:
   - python
   - "{pluginDir}/stashAppAdvancedRating.py"
 interface: raw
+tasks:
+  - name: Import from MEGA
+    description: Import files from MEGA.nz
+    defaultArgs:
+      url: "" 
+  - name: PHash scenes
+    description: Calculate frame-level perceptual hashes for unhashed scenes
+    defaultArgs:
+      mode: catchup
+  - name: logcat
+    description: Send android app's logcat logs
+    defaultArgs:
+      mode: logcat
+  - name: crash_report
+    description: Send android app's crash report
+    defaultArgs:
+      mode: crash_report
+
+settings:
+  audioTabURL:
+    displayName: Customize audio tab link
+    description: "default: /scenes?c=(%22type%22:%22video_codec%22,%22modifier%22:%22IS_NULL%22)"
+    type: STRING
+  id:
+    displayName: Global Background Source ID
+    description: The ID for the entity containing the images to be retrieved (tag or gallery).
+    type: NUMBER
+  mode:
+    displayName: Global Background Gallery Mode
+    description: When set true, the ID will point to a gallery to retrieve images from. When set false, the ID will point to a tag to retrieve images.
+    type: BOOLEAN
+  performerPage:
+    displayName: Unique Performer Images (optional)
+    description: When set true, the performer page will attempt to retrieve a background image containing the performer. If no image containing the performer is found, no image will be displayed.
+    type: BOOLEAN
+  performerPageId:
+    displayName: Performer Source ID (optional)
+    description: When Unique Performer Images enabled, this ID can be used to select performer images from a different source than the global background images. If not set, will fallback to global ID.
+    type: NUMBER
+  performerPageEntity:
+    displayName: Performer Background Gallery Mode (optional)
+    description: When Unique Performer Images enabled, the Performer Source ID will point to a gallery to retrieve images from. When set false, the ID will point to a tag.
+    type: BOOLEAN
