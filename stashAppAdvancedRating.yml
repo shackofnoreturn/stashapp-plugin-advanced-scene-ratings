@@ -4,21 +4,21 @@ version: 0.0.2
 url: https://github.com/shackofnoreturn/stashapp-plugin-advanced-scene-ratings
 
 settings:
-  - displayName: "Categories"
-    key: categories
-    type: STRING
+  categories:
+    displayName: "Categories"
     description: "Comma-separated list of rating categories (e.g., acting,camera,story,intensity,chemistry)"
-
-  - displayName: "Minimum Required Tags"
-    key: minimum_required_tags
-    type: NUMBER
+    type: STRING
+    
+  minimum_required_tags:
+    displayName: "Minimum Required Tags"
     description: "Minimum number of tags needed to rate a scene"
-
-  - displayName: "Enable Logging"
-    key: enable_logging
-    type: BOOLEAN
+    type: NUMBER
+    
+  enable_logging:
+    displayName: "Enable Logging"
     description: "Enable console output"
-
+    type: BOOLEAN
+    
 exec:
   - name: "Rate Scenes"
     args:
