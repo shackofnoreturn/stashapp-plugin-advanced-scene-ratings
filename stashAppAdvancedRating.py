@@ -3,6 +3,7 @@ from stashapi.stashapp import StashInterface
 import os
 import sys
 import re
+import json
 
 # Constants
 TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
@@ -98,12 +99,10 @@ def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, 
 
 # Main function to run the plugin
 def main():
-    stash = StashInterface({
-        "scheme": "http",
-        "host":"localhost",
-        "port": "9999",
-        "logger": log
-    })
+    json_input = json.loads(sys.stdin.read())
+
+    FRAGMENT_SERVER = json_input["server_connection"]
+    stash = StashInterface(FRAGMENT_SERVER)
 
     # Example usage of StashInterface to find a scene
     scene_data = stash.find_scene(1234)
