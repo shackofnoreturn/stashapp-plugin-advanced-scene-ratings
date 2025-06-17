@@ -1,6 +1,6 @@
 name: Advanced Rating System
 description: Rate scenes based on advanced criteria using tags
-version: 0.3.9
+version: 0.3.11
 url: https://github.com/shackofnoreturn/stashapp-plugin-advanced-scene-ratings
 
 exec:
@@ -16,10 +16,6 @@ settings:
     displayName: "Minimum Required Tags"
     description: "Minimum number of tags needed to rate a scene"
     type: NUMBER
-  enable_logging:
-    displayName: "Enable Logging"
-    description: "Enable console output"
-    type: BOOLEAN
 
 hooks:
   - name: Process Scene

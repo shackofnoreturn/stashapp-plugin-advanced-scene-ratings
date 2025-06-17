@@ -8,6 +8,49 @@ import json
 # Constants
 TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
 
+def processScenes():
+    log.info("Getting scene count")
+    # if skip_tag not in tags_cache:
+    #     tags_cache[skip_tag] = stash.find_tag(skip_tag, create=True).get("id")
+    # count = stash.find_scenes(
+    #     f={
+    #         "tags": {
+    #             "depth": 0,
+    #             "excludes": [tags_cache[skip_tag]],
+    #             "modifier": "INCLUDES_ALL",
+    #             "value": [],
+    #         }
+    #     },
+    #     filter={"per_page": 1},
+    #     get_count=True,
+    # )[0]
+    # log.info(str(count) + " scenes to process.")
+    # i = 0
+    # for r in range(1, int(count / per_page) + 2):
+    #     log.info(
+    #         "adding tags to scenes: %s - %s %0.1f%%"
+    #         % (
+    #             (r - 1) * per_page,
+    #             r * per_page,
+    #             (i / count) * 100,
+    #         )
+    #     )
+    #     scenes = stash.find_scenes(
+    #         f={
+    #             "tags": {
+    #                 "depth": 0,
+    #                 "excludes": [tags_cache[skip_tag]],
+    #                 "modifier": "INCLUDES_ALL",
+    #                 "value": [],
+    #             }
+    #         },
+    #         filter={"page": r, "per_page": per_page},
+    #     )
+    #     for s in scenes:
+    #         processScene(s)
+    #         i = i + 1
+    #         log.progress((i / count))
+    #         time.sleep(1)
 
 def get_plugin_settings(stash):
     # Retrieve each setting or use fallback from the default 'settings' dict
@@ -24,30 +67,17 @@ def get_plugin_settings(stash):
     except (TypeError, ValueError):
         minimum_required_tags = settings["minimum_required_tags"]
 
-    ## Enable logging
-    enable_logging_str = stash.get_configuration("enable_logging")
-    if enable_logging_str:
-        enable_logging = enable_logging_str.strip().lower() == "true"
-    else:
-        enable_logging = settings["enable_logging"]
-
     ## RETURN
-    return categories, minimum_required_tags, enable_logging
-
-
-# Logging function
-def log(msg, enabled):
-    if enabled:
-        print(msg)
+    return categories, minimum_required_tags
 
 
 # Ensure tags exist in Stash
-def ensure_tags_exist(stash, categories, enable_logging):
+def ensure_tags_exist(stash, categories ):
     # Create or find "Advanced Rating" parent tag
     parent_tag = stash.find_tag_by_name("Advanced Rating")
     if not parent_tag:
         parent_tag = stash.create_tag(name="Advanced Rating")
-        log("Created parent tag: Advanced Rating", enable_logging)
+        log.info("Created parent tag: Advanced Rating")
     parent_id = parent_tag["id"]
 
     # For each category, create category tag under Advanced Rating
@@ -55,18 +85,18 @@ def ensure_tags_exist(stash, categories, enable_logging):
         cat_tag = stash.find_tag_by_name(cat)
         if not cat_tag:
             cat_tag = stash.create_tag(name=cat, parent_id=parent_id)
-            log(f"Created category tag: {cat} under Advanced Rating", enable_logging)
+             log.info("Created category tag: {cat} under Advanced Rating" )
         # Create numbered child tags (1 to 5)
         for i in range(1, 6):
             num_tag_name = f"{cat}_{i}"
             num_tag = stash.find_tag_by_name(num_tag_name)
             if not num_tag:
                 stash.create_tag(name=num_tag_name, parent_id=cat_tag["id"])
-                log(f"Created numbered tag: {num_tag_name} under {cat}", enable_logging)
+                 log.info("Created numbered tag: {num_tag_name} under {cat}" )
 
 
 # Calculate rating for a scene based on its tags
-def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, enable_logging):
+def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags ):
     tags = [tag['name'] for tag in scene['tags']]
     scores = {}
     for tag in tags:
@@ -77,7 +107,7 @@ def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, 
                 scores[category] = int(score)
 
     if len(scores) < minimum_required_tags:
-        log(f"Scene '{scene['title']}' skipped, not enough rating tags ({len(scores)})", enable_logging)
+         log.info("Scene '{scene['title']}' skipped, not enough rating tags ({len(scores)})" )
         return
 
     average = sum(scores.get(cat, 0) for cat in categories) / len(categories)
@@ -85,47 +115,76 @@ def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, 
     current_rating = scene.get("rating") or 0
 
     if current_rating != final_rating:
-        log(f"Updating scene '{scene['title']}' rating from {current_rating} to {final_rating}", enable_logging)
+         log.info("Updating scene '{scene['title']}' rating from {current_rating} to {final_rating}" )
         stash.update_scene(scene_id=scene['id'], rating=final_rating)
     else:
-        log(f"Scene '{scene['title']}' rating unchanged at {current_rating}", enable_logging)
+         log.info("Scene '{scene['title']}' rating unchanged at {current_rating}" )
 
 
-# Main function to run the plugin
+# MAIN
 json_input = json.loads(sys.stdin.read())
 FRAGMENT_SERVER = json_input["server_connection"]
 stash = StashInterface(FRAGMENT_SERVER)
 
-config = stash.get_configuration()
+# Configuration Setup
+config = stash.get_configuration()["plugins"]
 settings = {
     "categories": "video_quality,acting,camera,story,intensity,chemistry",
-    "minimum_required_tags": 5,
-    "enable_logging": False
+    "minimum_required_tags": 5
 }
 
-# categories, minimum_required_tags, enable_logging = get_plugin_settings(stash)
-# ensure_tags_exist(stash, categories, enable_logging)
+if "advancedRating" in config:
+    settings.update(config["advancedRating"])
+log.info("config: %s " % (settings,))
+
+# categories, minimum_required_tags  = get_plugin_settings(stash)
+# ensure_tags_exist(stash, categories )
+
+if "mode" in json_input["args"]:
+    PLUGIN_ARGS = json_input["args"]["mode"]
+    log.debug(json_input)
+    if "processScenes" in PLUGIN_ARGS:
+        # Process all scenes
+        scenes = stash.find_scenes({})
+        for scene in scenes:
+            calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
+
+    #JUNK
+        # if "scene_id" in json_input["args"]:
+        #     scene = stash.find_scene(json_input["args"]["scene_id"])
+        #     processScene(scene)
+        # else:
+        #     processScenes()
+
+elif "hookContext" in json_input["args"]:
+    id = json_input["args"]["hookContext"]["id"]
+    if json_input["args"]["hookContext"]["type"] == "Scene.Update.Post":
+        stash.run_plugin_task("advancedRating", "Process all", args={"scene_id": id})
+#       scene = stash.find_scene(id)
+#       processScene(scene)
+
+
 
 # Task Execitop, Modes
-if len(sys.argv) > 1:
-    mode = sys.argv[1]
-else:
-    mode = ""
+# if len(sys.argv) > 1:
+#     mode = sys.argv[1]
+# else:
+#     mode = ""
 
-if mode == "processScenes" or mode == "rate_all":
-    # Process all scenes
-    scenes = stash.find_scenes({})
-    for scene in scenes:
-        calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, enable_logging)
+# if mode == "processScenes" or mode == "rate_all":
+#     # Process all scenes
+#     scenes = stash.find_scenes({})
+#     for scene in scenes:
+#         calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
 
-elif mode == "rate":
-    # Process a single updated scene, Stash passes SCENE_ID env var
-    scene_id = os.environ.get("SCENE_ID")
-    if not scene_id:
-        print("Error: SCENE_ID environment variable not found")
+# elif mode == "rate":
+#     # Process a single updated scene, Stash passes SCENE_ID env var
+#     scene_id = os.environ.get("SCENE_ID")
+#     if not scene_id:
+#         print("Error: SCENE_ID environment variable not found")
 
-    scene = stash.find_scene(scene_id)
-    calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, enable_logging)
+#     scene = stash.find_scene(scene_id)
+#     calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
 
-else:
-    print("No valid mode specified. Use 'rate', 'rate_all', or 'processScenes'.")
+# else:
+#     print("No valid mode specified. Use 'rate', 'rate_all', or 'processScenes'.")
