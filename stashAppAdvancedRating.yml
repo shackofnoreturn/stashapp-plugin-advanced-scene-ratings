@@ -1,7 +1,11 @@
 name: Advanced Rating System
 description: Rate scenes based on advanced criteria using tags
-version: 0.0.2
+version: 0.3.2
 url: https://github.com/shackofnoreturn/stashapp-plugin-advanced-scene-ratings
+
+exec:
+  - python
+  - "{pluginDir}/stashAppAdvancedRating.py"
 
 settings:
   categories:
@@ -18,16 +22,17 @@ settings:
     displayName: "Enable Logging"
     description: "Enable console output"
     type: BOOLEAN
-    
-exec:
-  - name: "Rate Scenes"
-    args:
-      - python
-      - "{pluginDir}/stashAppAdvancedRating.py"
-      - rate
 
-  - name: "Create Tags"
-    args:
-      - python
-      - "{pluginDir}/stashAppAdvancedRating.py"
-      - create-tags
+
+hooks:
+  - name: Process Scene
+    description: Calculate and apply rating
+    triggeredBy:
+      - Scene.Update.Post
+
+
+tasks:
+  - name: Process all
+    description: Calculate and (re)apply ratings to all scenes
+    defaultArgs:
+      mode: processScenes
