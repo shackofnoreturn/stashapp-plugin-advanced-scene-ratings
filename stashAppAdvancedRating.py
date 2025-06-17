@@ -37,8 +37,8 @@ def main():
     log.info(f"Starting Stash Advanced Rating Plugin ...")
     global stash
 
+    global json_input
     json_input = json.loads(sys.stdin.read())
-    mode_arg = json_input["args"]["mode"]
 
     log.debug(f"Initializing Stash Interface with server connection: {json_input['server_connection']}")
     stash = StashInterface(json_input["server_connection"])
@@ -56,15 +56,13 @@ def main():
     minimum_required_tags = settings["minimum_required_tags"]
     log.info(f"And here are the final categories: {categories} - and min tags: {minimum_required_tags}")
 
-    #         # Process all scenes
-    #         scenes = stash.find_scenes({})
-    #         for scene in scenes:
-    #             calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
-            # if "scene_id" in json_input["args"]:
-            #     scene = stash.find_scene(json_input["args"]["scene_id"])
-            #     processScene(scene)
-            # else:
-            #     processScenes()
+    mode_arg = json_input["args"]["mode"]
+    if mode_arg == "process_scenes":
+        processScenes(stash, categories, minimum_required_tags)
+    if mode_arg == "create_tags":
+        createTags(categories)
+    if mode_arg == "remove_tags":
+        removeTags(categories)
 
     if "hookContext" in json_input["args"]:
         id = json_input["args"]["hookContext"]["id"]
@@ -73,14 +71,6 @@ def main():
             # scene = stash.find_scene(id)
             # processScene(scene)
             log.debug(f"Made it through the hook ...")
-
-
-    if mode_arg == "process_scenes":
-        processScenes(stash, categories, minimum_required_tags)
-    if mode_arg == "create_tags":
-        createTags(categories)
-    if mode_arg == "remove_tags":
-        removeTags(categories)
 
 
     # elif mode == "rate":
@@ -95,13 +85,83 @@ def main():
     # else:
     #     print("No valid mode specified. Use 'rate', 'rate_all', or 'process_scenes'.")
 
+def processScene(scene):
+    log.debug("processing scene: %s" % (scene["id"],))
+    # When the scene does not meet minimum_required_tags, skip it
+    if False:
+        pass
+    # if skip_tag not in tags_cache:
+    #     tags_cache[skip_tag] = stash.find_tag(skip_tag, create=True).get("id")
+    # if tags_cache[skip_tag] not in [x["id"] for x in scene["tags"]]:
+    #     tags = []
+    #     update = False
+    #     if settings["addStashVRCompanionTags"]:
+    #         processStashVRCompanionTags(scene, tags)
+    #         log.debug(tags)
+    #     if settings["addVRTags"]:
+    #         processVRTags(scene, tags)
+    #     if settings["addSoloTags"]:
+    #         soloTag(scene, tags)
+    #     if settings["addThreesomeTags"]:
+    #         processGroupMakeup(['threesome'], 'Threesome', 3, scene, tags)
+    #     if settings["addFoursomeTags"]:
+    #         processGroupMakeup(['foursome', '4some'], 'Foursome', 4, scene, tags)
+    #     if settings["addFivesomeTags"]:
+    #         processGroupMakeup(['fivesome', 'fiveway'], 'Fivesome', 5, scene, tags)
+    #     if settings["addSixsomeTags"]:
+    #         processGroupMakeup(['sixsome'], 'Sixsome', 6, scene, tags)
+    #     if settings["addSevensomeTags"]:
+    #         processGroupMakeup(['sevensome'], 'Sevensome', 7, scene, tags)
+
+    #     if len(settings["flatStudio"]) > 0:
+    #         processFlatStudio(scene, tags)
+    #     if len(tags) > 0:
+    #         log.debug(
+    #             "processing scene %s, checking if tags need to be added: %s"
+    #             % (
+    #                 scene["title"],
+    #                 tags,
+    #             )
+    #         )
+    #         # start with the existing tag id's, then look up the new tag id's and create if needed
+    #         new_scene = {"id": scene["id"], "tag_ids": [x["id"] for x in scene["tags"]]}
+    #         for t in tags:
+    #             if t not in tags_cache:
+    #                 tt = stash.find_tag(t, create=True)
+    #                 tags_cache[t] = tt
+    #                 for x in tt["aliases"]:
+    #                     tags_cache[x] = tt
+    #                 log.debug(tt)
+    #             if tags_cache[t].get("id") not in new_scene["tag_ids"]:
+    #                 new_scene["tag_ids"].append(tags_cache[t].get("id"))
+    #                 update = True
+    #             else:
+    #                 log.debug('already there %s' % (t,))
+    #     if update:
+    #         log.info(
+    #             "Adding tags to scene: %s, tags: %s"
+    #             % (
+    #                 scene["title"],
+    #                 tags,
+    #             )
+    #         )
+    #         log.debug(new_scene)
+    #         stash.update_scene(new_scene)
+    #     else:
+    #         log.debug("no update")
+    else:
+        log.debug("skipping scene")
 
 def processScenes(stash, categories, minimum_required_tags):
     log.info(f"Processing all scenes ...")
     scenes = stash.find_scenes({})
     for scene in scenes:
         calculate_rating_for_scene(stash, scene, categories, minimum_required_tags)
-
+        if "scene_id" in json_input["args"]:
+            scene = stash.find_scene(json_input["args"]["scene_id"])
+            processScene(scene)
+        else:
+            processScenes()
 
     # if skip_tag not in tags_cache:
     #     tags_cache[skip_tag] = stash.find_tag(skip_tag, create=True).get("id")
@@ -149,9 +209,9 @@ def processScenes(stash, categories, minimum_required_tags):
 def find_tag(name, create=False):
     find_tag_tag = stash.find_tag(name, create)
     if find_tag_tag is None:
-        log.error(f"Tag does not exist: {tag_rating_parent['name']}")
+        log.error(f"Tag does not exist: 'name'")
     else:
-        log.info(f"Found Tag: ID:{find_tag_tag['id']} Name: {find_tag_tag['name']}")
+        log.info(f"Found Tag - ID:{find_tag_tag['id']} Name: {find_tag_tag['name']}")
     return find_tag_tag
 
 def create_tag(obj):
@@ -164,11 +224,11 @@ def create_tag(obj):
 
 def createTags(categories):
     log.info(f"Ensure the needed tags exist ...")
-    tag_rating_parent = find_tag(tag_rating_parent)
-    if tag_rating_parent is None:
-        tag_rating_parent = create_tag(tag_rating_parent)
-        log.info(f"Created parent tag: Rating Parent tag")
-    parent_id = tag_rating_parent["id"]
+    find_rating_parent = find_tag(tag_rating_parent)
+    if find_rating_parent is None:
+        find_rating_parent = create_tag(tag_rating_parent)
+        log.info(f"Created parent tag")
+    parent_id = find_rating_parent["id"]
 
     # For each category, create category tag under Advanced Rating
     for cat in categories:
@@ -184,16 +244,17 @@ def createTags(categories):
             #     stash.create_tag(name=num_tag_name, parent_id=cat_tag["id"])
             #     log.info(f"Created numbered tag: {num_tag_name} under {cat}")
 
+def removeTags(categories):
+    log.info(f"Removing tags ...")
+    for cat in categories:
+        remove_tag(cat)
+        
 def remove_tag(name):
     remove_tag_tag = find_tag(name)
     if remove_tag_tag is not None:
         stash.destroy_tag(remove_tag_tag)
         log.info(f"Deleted Tag - ID:{remove_tag_tag['id']}: Name: {remove_tag_tag['name']}")
 
-def removeTags(categories):
-    log.info(f"Removing tags ...")
-    for cat in categories:
-        cat_tag = find_tag(cat)
 
 def find_scenes(find_scenes_tag):
     scene_count, scenes = stash.find_scenes(
@@ -241,7 +302,7 @@ def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
                 scores[category] = int(score)
 
     if len(scores) < minimum_required_tags:
-        log.info(f"Scene '{scene['title']}' skipped, not enough rating tags {len(scores)}")
+        log.info(f"Scene '{scene['title']}' skipped, not enough rating tags {scores}")
         return 1
 
     average = sum(scores.get(cat, 0) for cat in categories) / len(categories)
