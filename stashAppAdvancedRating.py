@@ -132,18 +132,21 @@ stash = StashInterface(FRAGMENT_SERVER)
 # Configuration Setup
 log.info("Retrieving plugin configuration ...")
 config = stash.get_configuration()["plugins"]
-log.info(config)
+log.info("Here's the entire CONFIG variable: {config}")
 settings = {
     "categories": "",
     # "categories": "video_quality,acting,camera,story,intensity,chemistry",
     "minimum_required_tags": 5
 }
-
+log.info("Here's the entire SETTINGS varoble before changes: {settings}")
 if "advancedRating" in config:
     settings.update(config["advancedRating"])
-log.info("config: %s " % (settings,))
+    log.info("Here's the entire SETTINGS varoble after changes: {settings}")
 
+# Final settings
+log.info("And here are the final settings: {categories}, {minimum_required_tags}")
 categories = settings["categories"].split(",") if settings["categories"] else []
+minimum_required_tags = settings["minimum_required_tags"]
 
 # categories, minimum_required_tags  = get_plugin_settings(stash)
 # ensure_tags_exist(stash, categories )
