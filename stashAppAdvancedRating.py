@@ -110,7 +110,7 @@ def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
 
     if len(scores) < minimum_required_tags:
         log.info("Scene '{scene['title']}' skipped, not enough rating tags ({len(scores)})" )
-        return
+        return 1
 
     average = sum(scores.get(cat, 0) for cat in categories) / len(categories)
     final_rating = round(average)
@@ -132,14 +132,18 @@ stash = StashInterface(FRAGMENT_SERVER)
 # Configuration Setup
 log.info("Retrieving plugin configuration ...")
 config = stash.get_configuration()["plugins"]
+log.info(config)
 settings = {
-    "categories": "video_quality,acting,camera,story,intensity,chemistry",
+    "categories": "",
+    # "categories": "video_quality,acting,camera,story,intensity,chemistry",
     "minimum_required_tags": 5
 }
 
 if "advancedRating" in config:
     settings.update(config["advancedRating"])
 log.info("config: %s " % (settings,))
+
+categories = settings["categories"].split(",") if settings["categories"] else []
 
 # categories, minimum_required_tags  = get_plugin_settings(stash)
 # ensure_tags_exist(stash, categories )
@@ -163,7 +167,7 @@ if "mode" in json_input["args"]:
 elif "hookContext" in json_input["args"]:
     id = json_input["args"]["hookContext"]["id"]
     if json_input["args"]["hookContext"]["type"] == "Scene.Update.Post":
-        stash.run_plugin_task("advancedRating", "Process all", args={"scene_id": id})
+        stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
 #       scene = stash.find_scene(id)
 #       processScene(scene)
 
