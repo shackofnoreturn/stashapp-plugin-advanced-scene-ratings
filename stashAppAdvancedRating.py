@@ -123,7 +123,7 @@ elif mode == "rate":
     scene_id = os.environ.get("SCENE_ID")
     if not scene_id:
         print("Error: SCENE_ID environment variable not found")
-        return
+
     scene = stash.find_scene(scene_id)
     calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, enable_logging)
 
