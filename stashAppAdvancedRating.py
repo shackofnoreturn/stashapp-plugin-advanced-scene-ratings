@@ -9,12 +9,6 @@ import json
 TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
 
 
-# Defaults if nothing has changed in the stash ui
-settings = {"categories": "video_quality,acting,camera,story,intensity,chemistry",
-            "minimum_required_tags": 5,
-            "enable_logging": False}
-
-
 def get_plugin_settings(stash):
     # Retrieve each setting or use fallback from the default 'settings' dict
     ## Categories
@@ -98,42 +92,40 @@ def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, 
 
 
 # Main function to run the plugin
-def main():
-    json_input = json.loads(sys.stdin.read())
+json_input = json.loads(sys.stdin.read())
+FRAGMENT_SERVER = json_input["server_connection"]
+stash = StashInterface(FRAGMENT_SERVER)
 
-    FRAGMENT_SERVER = json_input["server_connection"]
-    stash = StashInterface(FRAGMENT_SERVER)
+config = stash.get_configuration()
+settings = {
+    "categories": "video_quality,acting,camera,story,intensity,chemistry",
+    "minimum_required_tags": 5,
+    "enable_logging": False
+}
 
-    # Example usage of StashInterface to find a scene
-    # scene_data = stash.find_scene(1234)
-    # log.info(scene_data)
-    # log(f"Scene '{scene_data}'", enable_logging)
+# categories, minimum_required_tags, enable_logging = get_plugin_settings(stash)
+# ensure_tags_exist(stash, categories, enable_logging)
 
-    # categories, minimum_required_tags, enable_logging = get_plugin_settings(stash)
-    ensure_tags_exist(stash, categories, enable_logging)
+# Task Execitop, Modes
+if len(sys.argv) > 1:
+    mode = sys.argv[1]
+else:
+    mode = ""
 
-    if len(sys.argv) > 1:
-        mode = sys.argv[1]
-    else:
-        mode = ""
-
-    if mode == "processScenes" or mode == "rate_all":
-        # Process all scenes
-        scenes = stash.find_scenes({})
-        for scene in scenes:
-            calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, enable_logging)
-
-    elif mode == "rate":
-        # Process a single updated scene, Stash passes SCENE_ID env var
-        scene_id = os.environ.get("SCENE_ID")
-        if not scene_id:
-            print("Error: SCENE_ID environment variable not found")
-            return
-        scene = stash.find_scene(scene_id)
+if mode == "processScenes" or mode == "rate_all":
+    # Process all scenes
+    scenes = stash.find_scenes({})
+    for scene in scenes:
         calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, enable_logging)
 
-    else:
-        print("No valid mode specified. Use 'rate', 'rate_all', or 'processScenes'.")
+elif mode == "rate":
+    # Process a single updated scene, Stash passes SCENE_ID env var
+    scene_id = os.environ.get("SCENE_ID")
+    if not scene_id:
+        print("Error: SCENE_ID environment variable not found")
+        return
+    scene = stash.find_scene(scene_id)
+    calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, enable_logging)
 
-if __name__ == "__main__":
-    main()
+else:
+    print("No valid mode specified. Use 'rate', 'rate_all', or 'processScenes'.")
