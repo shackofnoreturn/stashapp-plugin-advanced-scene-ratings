@@ -1,6 +1,6 @@
 name: Advanced Rating System
 description: Rate scenes based on advanced criteria using tags
-version: 0.1.2
+version: 0.1.3
 url: https://github.com/shackofnoreturn/stashapp-plugin-advanced-scene-ratings
 
 exec:
@@ -11,14 +11,19 @@ settings:
   categories:
     displayName: Rating Categories
     description: Comma-separated category names (e.g. acting,camera,story)
-    type: text
+    type: STRING
 
   enable_logging:
     displayName: Enable Logging
     description: Whether to print updates to the Stash log
-    type: boolean
+    type: BOOLEAN
 
   minimum_required_tags:
     displayName: Minimum Required Tags
     description: How many category tags must be present before applying a rating
-    type: number
+    type: NUMBER
+
+  create_tags_button:
+    displayName: Create Rating Tags
+    description: Click to create the advanced rating tag structure if it doesn't exist
+    type: BUTTON
