@@ -1,10 +1,29 @@
 import re
 
+try:
+    import stashapi.log as log
+    from stashapi.stashapp import StashInterface
+
+except ModuleNotFoundError:
+    print(
+        "You need to install the stashapi module. (pip install stashapp-tools)",
+        file=sys.stderr,
+    )
+    exit
+
+FAKTORCONV = 6.25
+FRAGMENT = json.loads(sys.stdin.read())
+# MODE = FRAGMENT['args']['mode']
+MODE = FRAGMENT["args"].get("mode")
+PLUGIN_DIR = FRAGMENT["server_connection"]["PluginDir"]
+stash = StashInterface(FRAGMENT["server_connection"])
+
 # Predefined categories
 CATEGORIES = ["acting", "camera", "story", "intensity", "chemistry"]
 TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
 
 def main(stash):
+    log.info(f"Plugin Dir {PLUGIN_DIR} ")
     scenes = stash.findScenes({})
     for scene in scenes:
         tags = [tag['name'] for tag in scene['tags']]
@@ -33,3 +52,6 @@ def main(stash):
 
 def do_logcat(args):
     print(f"TESTING PLUGIN TASKS")
+
+def do_crash_report(args):
+    log.info(f"TESTING PLUGIN 2")
