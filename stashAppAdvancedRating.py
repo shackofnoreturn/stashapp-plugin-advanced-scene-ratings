@@ -1,15 +1,114 @@
 import stashapi.log as log
 from stashapi.stashapp import StashInterface
-import os
 import sys
 import re
 import json
 
-# Constants
+# Variables
 TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
 
-def processScenes():
+settings = {
+    "categories": "video_quality,acting,camera,story,intensity,chemistry",
+    "minimum_required_tags": 5
+}
+log.debug(f"Displaying contents of `settings`: {settings}")
+
+SVG_IMAGE = (
+    "data:image/svg+xml;base64,PCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIi"
+    "AiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KDTwhLS0gVXBsb2FkZW"
+    "QgdG86IFNWRyBSZXBvLCB3d3cuc3ZncmVwby5jb20sIFRyYW5zZm9ybWVkIGJ5OiBTVkcgUmVwbyBNaXhlciBUb2"
+    "9scyAtLT4KPHN2ZyB3aWR0aD0iODAwcHgiIGhlaWdodD0iODAwcHgiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD"
+    "0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KDTxnIGlkPSJTVkdSZXBvX2JnQ2Fycm"
+    "llciIgc3Ryb2tlLXdpZHRoPSIwIi8+Cg08ZyBpZD0iU1ZHUmVwb190cmFjZXJDYXJyaWVyIiBzdHJva2UtbGluZW"
+    "NhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KDTxnIGlkPSJTVkdSZXBvX2ljb25DYXJyaWVyIj"
+    "4gPHBhdGggZD0iTTUuNjM2MDUgNS42MzYwNUwxOC4zNjQgMTguMzY0TTUuNjM2MDUgMTguMzY0TDE4LjM2NCA1Lj"
+    "YzNjA1TTIxIDEyQzIxIDE2Ljk3MDYgMTYuOTcwNiAyMSAxMiAyMUM3LjAyOTQ0IDIxIDMgMTYuOTcwNiAzIDEyQz"
+    "MgNy4wMjk0NCA3LjAyOTQ0IDMgMTIgM0MxNi45NzA2IDMgMjEgNy4wMjk0NCAyMSAxMloiIHN0cm9rZT0iI2ZmZm"
+    "ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPiA8L2c+Cg08L3N2Zz4="
+)
+
+tag_rating_parent = {
+    "name": "Advanced Rating System",
+    "description": "Advanced Rating System: Parent tag for all rating categories",
+    "image": SVG_IMAGE
+}
+
+def main():
+    log.info(f"Starting Stash Advanced Rating Plugin ...")
+    global stash
+
+    json_input = json.loads(sys.stdin.read())
+    mode_arg = json_input["args"]["mode"]
+
+    log.debug(f"Initializing Stash Interface with server connection: {json_input['server_connection']}")
+    stash = StashInterface(json_input["server_connection"])
+
+    log.info(f"Retrieving plugin configuration ...")
+    config = stash.get_configuration()["plugins"]
+    log.debug(f"Displaying contents of `config`: {config}")
+
+    if "stashAppAdvancedRating" in config:
+        settings.update(config["stashAppAdvancedRating"])
+        log.debug(f"Here's the entire SETTINGS varoble after changes: {settings}")
+
+    # Final settings
+    categories = settings["categories"].split(",") if settings["categories"] else []
+    minimum_required_tags = settings["minimum_required_tags"]
+    log.info(f"And here are the final categories: {categories} - and min tags: {minimum_required_tags}")
+    createTags(stash, categories)
+
+    # if "mode" in json_input["args"]:
+    #     PLUGIN_ARGS = json_input["args"]["mode"]
+    #     log.info(f"JSON INPUT OUTPUT: {json_input}")
+    #     if "process_scenes" in PLUGIN_ARGS:
+    #         # Process all scenes
+    #         scenes = stash.find_scenes({})
+    #         for scene in scenes:
+    #             calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
+
+        #JUNK
+            # if "scene_id" in json_input["args"]:
+            #     scene = stash.find_scene(json_input["args"]["scene_id"])
+            #     processScene(scene)
+            # else:
+            #     processScenes()
+
+    # elif "hookContext" in json_input["args"]:
+    #     id = json_input["args"]["hookContext"]["id"]
+    #     if json_input["args"]["hookContext"]["type"] == "Scene.Update.Post":
+    #         stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
+    #       scene = stash.find_scene(id)
+    #       processScene(scene)
+
+
+    if mode_arg == "process_scenes":
+        processScenes()
+    if mode_arg == "create_tags":
+        createTags(stash, categories)
+    if mode_arg == "remove_tags":
+        removeTags(stash, categories)
+
+
+    # elif mode == "rate":
+    #     # Process a single updated scene, Stash passes SCENE_ID env var
+    #     scene_id = os.environ.get("SCENE_ID")
+    #     if not scene_id:
+    #         print("Error: SCENE_ID environment variable not found")
+
+    #     scene = stash.find_scene(scene_id)
+    #     calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
+
+    # else:
+    #     print("No valid mode specified. Use 'rate', 'rate_all', or 'process_scenes'.")
+
+
+def processScenes(stash, categories, minimum_required_tags):
     log.info(f"Processing all scenes ...")
+    scenes = stash.find_scenes({})
+    for scene in scenes:
+        calculate_rating_for_scene(stash, scene, categories, minimum_required_tags)
+
+
     # if skip_tag not in tags_cache:
     #     tags_cache[skip_tag] = stash.find_tag(skip_tag, create=True).get("id")
     # count = stash.find_scenes(
@@ -52,6 +151,72 @@ def processScenes():
     #         log.progress((i / count))
     #         time.sleep(1)
 
+
+def create_tag(obj):
+    create_tag_tag = stash.create_tag(obj)
+    if create_tag_tag is None:
+        log.error(f'Tag already exists: {tag_rating_parent["name"]}')
+    else:
+        log.info(f"Created Tag: ID:{create_tag_tag['id']} Name: {create_tag_tag['name']}")
+    return create_tag_tag
+
+def createTags(stash, categories):
+    log.info(f"Ensure the needed tags exist ...")
+    rating_parent_tag = find_tag(tag_rating_parent)
+    if rating_parent_tag is None:
+        rating_parent_tag = create_tag(rating_parent_tag)
+        log.info(f"Created parent tag: Advanced Rating")
+    parent_id = rating_parent_tag["id"]
+
+    # For each category, create category tag under Advanced Rating
+    for cat in categories:
+        cat_tag = stash.find_tag(cat)
+        if not cat_tag:
+            cat_tag = stash.create_tag(name=cat, parent_id=parent_id)
+            log.info(f"Created category tag: {cat} under Advanced Rating")
+        # Create numbered child tags (1 to 5)
+        for i in range(1, 6):
+            num_tag_name = f"{cat}_{i}"
+            num_tag = stash.find_tag(num_tag_name)
+            if not num_tag:
+                stash.create_tag(name=num_tag_name, parent_id=cat_tag["id"])
+                log.info(f"Created numbered tag: {num_tag_name} under {cat}")
+
+def removeTags():
+    log.info(f"Removing tags ...")
+    # This function would remove specific tags from scenes or the database
+    # Implementation would depend on the specific requirements and logic needed
+    pass
+
+def find_scenes(find_scenes_tag):
+    scene_count, scenes = stash.find_scenes(
+    f={
+        "file_count": {"modifier": "GREATER_THAN", "value": 1},
+        "tags": {"modifier": "EXCLUDES", "value": find_scenes_tag},
+    },
+    filter={
+        "per_page": "-1"
+    },
+    get_count=True,
+)
+    return scene_count, scenes
+
+
+def find_tag(name, create=False):
+    find_tag_tag = stash.find_tag(name, create)
+    if find_tag_tag is None:
+        log.error(f"Tag does not exist: {tag_rating_parent['name']}")
+    else:
+        log.info(f"Found Tag: ID:{find_tag_tag['id']} Name: {find_tag_tag['name']}")
+    return find_tag_tag
+
+def remove_tag():
+    remove_tag_tag = find_tag(tag_rating_parent["name"])
+    if remove_tag_tag is not None:
+        stash.destroy_tag(remove_tag_tag['id'])
+        log.info(f"Deleted Tag - ID:{remove_tag_tag['id']}: Name: {remove_tag_tag['name']}")
+
+
 def get_plugin_settings(stash):
     log.info(f"Getting plugin settings ...")
     # Retrieve each setting or use fallback from the default 'settings' dict
@@ -69,31 +234,6 @@ def get_plugin_settings(stash):
         minimum_required_tags = settings["minimum_required_tags"]
     ## RETURN
     return categories, minimum_required_tags
-
-
-# Ensure tags exist in Stash
-def ensure_tags_exist(stash, categories ):
-    log.info(f"Ensure the needed tags exist ...")
-    # Create or find "Advanced Rating" parent tag
-    parent_tag = stash.find_tag_by_name("Advanced Rating")
-    if not parent_tag:
-        parent_tag = stash.create_tag(name="Advanced Rating")
-        log.info(f"Created parent tag: Advanced Rating")
-    parent_id = parent_tag["id"]
-
-    # For each category, create category tag under Advanced Rating
-    for cat in categories:
-        cat_tag = stash.find_tag_by_name(cat)
-        if not cat_tag:
-            cat_tag = stash.create_tag(name=cat, parent_id=parent_id)
-            log.info(f"Created category tag: {cat} under Advanced Rating")
-        # Create numbered child tags (1 to 5)
-        for i in range(1, 6):
-            num_tag_name = f"{cat}_{i}"
-            num_tag = stash.find_tag_by_name(num_tag_name)
-            if not num_tag:
-                stash.create_tag(name=num_tag_name, parent_id=cat_tag["id"])
-                log.info(f"Created numbered tag: {num_tag_name} under {cat}")
 
 
 # Calculate rating for a scene based on its tags
@@ -122,78 +262,5 @@ def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
     else:
         log.info(f"Scene '{scene['title']}' rating unchanged at {current_rating}")
 
-
-# MAIN
-log.info(f"Starting Stash Advanced Rating Plugin ...")
-json_input = json.loads(sys.stdin.read())
-FRAGMENT_SERVER = json_input["server_connection"]
-stash = StashInterface(FRAGMENT_SERVER)
-
-# Configuration Setup
-log.info(f"Retrieving plugin configuration ...")
-config = stash.get_configuration()["plugins"]
-log.info(f"Here's the entire CONFIG variable: {config}")
-settings = {
-    "categories": "",
-    # "categories": "video_quality,acting,camera,story,intensity,chemistry",
-    "minimum_required_tags": 5
-}
-log.info(f"Here's the entire SETTINGS variable before changes: {settings}")
-if "advancedRating" in config:
-    settings.update(config["advancedRating"])
-    log.info(f"Here's the entire SETTINGS varoble after changes: {settings}")
-
-# Final settings
-categories = settings["categories"].split(",") if settings["categories"] else []
-minimum_required_tags = settings["minimum_required_tags"]
-log.info(f"And here are the final categories: {categories} - and min tags: {minimum_required_tags}")
-ensure_tags_exist(stash, categories )
-
-if "mode" in json_input["args"]:
-    PLUGIN_ARGS = json_input["args"]["mode"]
-    log.info(f"JSON INPUT OUTPUT: {json_input}")
-    if "processScenes" in PLUGIN_ARGS:
-        # Process all scenes
-        scenes = stash.find_scenes({})
-        for scene in scenes:
-            calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
-
-    #JUNK
-        # if "scene_id" in json_input["args"]:
-        #     scene = stash.find_scene(json_input["args"]["scene_id"])
-        #     processScene(scene)
-        # else:
-        #     processScenes()
-
-elif "hookContext" in json_input["args"]:
-    id = json_input["args"]["hookContext"]["id"]
-    if json_input["args"]["hookContext"]["type"] == "Scene.Update.Post":
-        stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
-#       scene = stash.find_scene(id)
-#       processScene(scene)
-
-
-
-# Task Execitop, Modes
-# if len(sys.argv) > 1:
-#     mode = sys.argv[1]
-# else:
-#     mode = ""
-
-# if mode == "processScenes" or mode == "rate_all":
-#     # Process all scenes
-#     scenes = stash.find_scenes({})
-#     for scene in scenes:
-#         calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
-
-# elif mode == "rate":
-#     # Process a single updated scene, Stash passes SCENE_ID env var
-#     scene_id = os.environ.get("SCENE_ID")
-#     if not scene_id:
-#         print("Error: SCENE_ID environment variable not found")
-
-#     scene = stash.find_scene(scene_id)
-#     calculate_rating_for_scene(stash, scene, categories, minimum_required_tags )
-
-# else:
-#     print("No valid mode specified. Use 'rate', 'rate_all', or 'processScenes'.")
+if __name__ == "__main__":
+    main()
