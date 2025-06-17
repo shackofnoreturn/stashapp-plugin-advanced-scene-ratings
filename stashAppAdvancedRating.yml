@@ -9,19 +9,16 @@ exec:
 
 settings:
   categories:
-    name: Rating Categories
+    displayName: Rating Categories
     description: Comma-separated category names (e.g. acting,camera,story)
     type: text
-    default: "acting,camera,story,intensity,chemistry"
 
   enable_logging:
-    name: Enable Logging
+    displayName: Enable Logging
     description: Whether to print updates to the Stash log
     type: boolean
-    default: true
 
   minimum_required_tags:
-    name: Minimum Required Tags
+    displayName: Minimum Required Tags
     description: How many category tags must be present before applying a rating
     type: number
-    default: 3
