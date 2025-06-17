@@ -109,7 +109,7 @@ def main():
     # log.info(scene_data)
     # log(f"Scene '{scene_data}'", enable_logging)
 
-    categories, minimum_required_tags, enable_logging = get_plugin_settings(stash)
+    # categories, minimum_required_tags, enable_logging = get_plugin_settings(stash)
     ensure_tags_exist(stash, categories, enable_logging)
 
     if len(sys.argv) > 1:
