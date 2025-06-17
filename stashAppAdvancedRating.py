@@ -55,7 +55,6 @@ def main():
     categories = settings["categories"].split(",") if settings["categories"] else []
     minimum_required_tags = settings["minimum_required_tags"]
     log.info(f"And here are the final categories: {categories} - and min tags: {minimum_required_tags}")
-    createTags(stash, categories)
 
     # if "mode" in json_input["args"]:
     #     PLUGIN_ARGS = json_input["args"]["mode"]
@@ -73,12 +72,12 @@ def main():
             # else:
             #     processScenes()
 
-    # elif "hookContext" in json_input["args"]:
-    #     id = json_input["args"]["hookContext"]["id"]
-    #     if json_input["args"]["hookContext"]["type"] == "Scene.Update.Post":
-    #         stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
-    #       scene = stash.find_scene(id)
-    #       processScene(scene)
+    if "hookContext" in json_input["args"]:
+        id = json_input["args"]["hookContext"]["id"]
+        if json_input["args"]["hookContext"]["type"] == "Scene.Update.Post":
+            stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
+            # scene = stash.find_scene(id)
+            # processScene(scene)
 
 
     if mode_arg == "process_scenes":
@@ -152,6 +151,20 @@ def processScenes(stash, categories, minimum_required_tags):
     #         time.sleep(1)
 
 
+def find_tag(name, create=False):
+    find_tag_tag = stash.find_tag(name, create)
+    if find_tag_tag is None:
+        log.error(f"Tag does not exist: {tag_rating_parent['name']}")
+    else:
+        log.info(f"Found Tag: ID:{find_tag_tag['id']} Name: {find_tag_tag['name']}")
+    return find_tag_tag
+
+def remove_tag():
+    remove_tag_tag = find_tag(tag_rating_parent["name"])
+    if remove_tag_tag is not None:
+        stash.destroy_tag(remove_tag_tag['id'])
+        log.info(f"Deleted Tag - ID:{remove_tag_tag['id']}: Name: {remove_tag_tag['name']}")
+
 def create_tag(obj):
     create_tag_tag = stash.create_tag(obj)
     if create_tag_tag is None:
@@ -162,25 +175,25 @@ def create_tag(obj):
 
 def createTags(stash, categories):
     log.info(f"Ensure the needed tags exist ...")
-    rating_parent_tag = find_tag(tag_rating_parent)
-    if rating_parent_tag is None:
-        rating_parent_tag = create_tag(rating_parent_tag)
-        log.info(f"Created parent tag: Advanced Rating")
-    parent_id = rating_parent_tag["id"]
+    tag_rating_parent = find_tag(tag_rating_parent)
+    if tag_rating_parent is None:
+        tag_rating_parent = create_tag(tag_rating_parent)
+        log.info(f"Created parent tag: Rating Parent tag")
+    parent_id = tag_rating_parent["id"]
 
     # For each category, create category tag under Advanced Rating
     for cat in categories:
-        cat_tag = stash.find_tag(cat)
-        if not cat_tag:
-            cat_tag = stash.create_tag(name=cat, parent_id=parent_id)
-            log.info(f"Created category tag: {cat} under Advanced Rating")
+        cat_tag = find_tag(cat, create=True)
+        # if not cat_tag:
+            # cat_tag = stash.create_tag(name=cat, parent_id=parent_id)
+            # log.info(f"Created category tag: {cat} under Advanced Rating")
         # Create numbered child tags (1 to 5)
         for i in range(1, 6):
             num_tag_name = f"{cat}_{i}"
-            num_tag = stash.find_tag(num_tag_name)
-            if not num_tag:
-                stash.create_tag(name=num_tag_name, parent_id=cat_tag["id"])
-                log.info(f"Created numbered tag: {num_tag_name} under {cat}")
+            num_tag = find_tag(num_tag_name)
+            # if not num_tag:
+            #     stash.create_tag(name=num_tag_name, parent_id=cat_tag["id"])
+            #     log.info(f"Created numbered tag: {num_tag_name} under {cat}")
 
 def removeTags():
     log.info(f"Removing tags ...")
@@ -200,21 +213,6 @@ def find_scenes(find_scenes_tag):
     get_count=True,
 )
     return scene_count, scenes
-
-
-def find_tag(name, create=False):
-    find_tag_tag = stash.find_tag(name, create)
-    if find_tag_tag is None:
-        log.error(f"Tag does not exist: {tag_rating_parent['name']}")
-    else:
-        log.info(f"Found Tag: ID:{find_tag_tag['id']} Name: {find_tag_tag['name']}")
-    return find_tag_tag
-
-def remove_tag():
-    remove_tag_tag = find_tag(tag_rating_parent["name"])
-    if remove_tag_tag is not None:
-        stash.destroy_tag(remove_tag_tag['id'])
-        log.info(f"Deleted Tag - ID:{remove_tag_tag['id']}: Name: {remove_tag_tag['name']}")
 
 
 def get_plugin_settings(stash):
