@@ -1,22 +1,52 @@
+import stashapi.log as log
+from stashapi.stashapp import StashInterface
 import os
 import sys
 import re
-from stashapi.stashapp import StashInterface
 
 # Constants
 TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
 
+
+# Defaults if nothing has changed in the stash ui
+settings = {"categories": "video_quality,acting,camera,story,intensity,chemistry",
+            "minimum_required_tags": 5,
+            "enable_logging": False}
+
+
 def get_plugin_settings(stash):
-    categories_str = stash.get_plugin_setting("categories") or "acting,camera,story,intensity,chemistry"
+    # Retrieve each setting or use fallback from the default 'settings' dict
+    ## Categories
+    categories_str = stash.get_configuration("categories")
+    if not categories_str:
+        categories_str = settings["categories"]
     categories = [c.strip() for c in categories_str.split(",") if c.strip()]
-    minimum_required_tags = int(stash.get_plugin_setting("minimum_required_tags") or 3)
-    enable_logging = stash.get_plugin_setting("enable_logging") == "true"
+
+    ## Minimum required tags
+    minimum_required_tags_str = stash.get_configuration("minimum_required_tags")
+    try:
+        minimum_required_tags = int(minimum_required_tags_str)
+    except (TypeError, ValueError):
+        minimum_required_tags = settings["minimum_required_tags"]
+
+    ## Enable logging
+    enable_logging_str = stash.get_configuration("enable_logging")
+    if enable_logging_str:
+        enable_logging = enable_logging_str.strip().lower() == "true"
+    else:
+        enable_logging = settings["enable_logging"]
+
+    ## RETURN
     return categories, minimum_required_tags, enable_logging
 
+
+# Logging function
 def log(msg, enabled):
     if enabled:
         print(msg)
 
+
+# Ensure tags exist in Stash
 def ensure_tags_exist(stash, categories, enable_logging):
     # Create or find "Advanced Rating" parent tag
     parent_tag = stash.find_tag_by_name("Advanced Rating")
@@ -39,6 +69,8 @@ def ensure_tags_exist(stash, categories, enable_logging):
                 stash.create_tag(name=num_tag_name, parent_id=cat_tag["id"])
                 log(f"Created numbered tag: {num_tag_name} under {cat}", enable_logging)
 
+
+# Calculate rating for a scene based on its tags
 def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, enable_logging):
     tags = [tag['name'] for tag in scene['tags']]
     scores = {}
@@ -63,8 +95,19 @@ def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags, 
     else:
         log(f"Scene '{scene['title']}' rating unchanged at {current_rating}", enable_logging)
 
+
+# Main function to run the plugin
 def main():
-    stash = StashInterface()
+    stash = StashInterface({
+        "scheme": "http",
+        "host":"localhost",
+        "port": "9999",
+        "logger": log
+    })
+
+    # Example usage of StashInterface to find a scene
+    scene_data = stash.find_scene(1234)
+    log.info(scene_data)
 
     categories, minimum_required_tags, enable_logging = get_plugin_settings(stash)
     ensure_tags_exist(stash, categories, enable_logging)
