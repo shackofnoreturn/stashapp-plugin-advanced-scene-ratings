@@ -34,15 +34,36 @@ tag_rating_parent = {
 
 # MAIN
 def main():
-    # TODO - Add check if load action was successful
-    log.info(f"Loading user settings ...")
-    global json_input
-    json_input = json.loads(sys.stdin.read())
+    log.info(f"USER SETTINGS: LOADING ...")
+    try:
+        raw_input = sys.stdin.read()
+        if not raw_input.strip():
+            raise ValueError("No input received from stdin.")
+        global json_input
+        json_input = json.loads(raw_input)
+        log.info(f"USER SETTINGS: OK")
+    except json.JSONDecodeError as e:
+        log.error(f"USER SETTINGS: Failed to decode JSON: {e}")
+        json_input = {}
+    except ValueError as e:
+        log.error(f"USER SETTINGS: Input error: {e}")
+        json_input = {}
 
-    # TODO - Add check if connection was successful
-    log.info(f"Initializing stash interface: {json_input['server_connection']}")
-    global stash
-    stash = StashInterface(json_input["server_connection"])
+
+    log.info(f"STASH INTERFACE: LOADING ...")
+    try:
+        server_connection = json_input["server_connection"]
+        log.info(f"{server_connection}")
+        global stash
+        stash = StashInterface(server_connection)
+        log.info(f"STASH INTERFACE: OK")
+    except KeyError:
+        log.error("STASH INTERFACE: Missing 'server_connection' in user settings.")
+        stash = None
+    except Exception as e:
+        log.error(f"STASH INTERFACE: Failed to initialize stash interface: {e}")
+        stash = None
+        stash = StashInterface(json_input["server_connection"])
 
     # TODO - Add check if getting configuration was successful
     log.info(f"Retrieving plugin configuration ...")
@@ -64,7 +85,6 @@ def main():
     # ACTIONS
     # Plugin action buttons
     mode_arg = json_input["args"]["mode"]
-    option_arg = json_input["args"]["allScenes"]
     if mode_arg == "process_scenes":
         processScenes(stash, categories, minimum_required_tags, allScenes=True)
     if mode_arg == "process_scenes_unrated":
@@ -100,7 +120,7 @@ def processScenes(stash, categories, minimum_required_tags, allScenes=True):
         scenes = stash.find_scenes({})
     else:
         log.info(f"Processing unrated scenes ...")
-        scenes = stash.find_scenes({}, None)
+        scenes = stash.find_scenes({}, 0)
     
     for scene in scenes:
         calculate_rating(stash, scene, categories, minimum_required_tags)
@@ -155,17 +175,29 @@ def removeTags(categories):
         remove_tag(cat)
 
 def find_scenes(find_scenes_tag, scene_rating):
-    scene_count, scenes = stash.find_scenes(
-        f={
-            "file_count": {"modifier": "GREATER_THAN", "value": 1},
-            "tags": {"modifier": "EXCLUDES", "value": find_scenes_tag},
-            "rating": {"modifier": "EQUALS", "value": scene_rating}
-        },
-        filter={
-            "per_page": "-1"
-        },
-        get_count=True
-    )
+    if scene_rating:
+        scene_count, scenes = stash.find_scenes(
+            f={
+                "file_count": {"modifier": "GREATER_THAN", "value": 1},
+                "tags": {"modifier": "EXCLUDES", "value": find_scenes_tag},
+                "rating": {"modifier": "EQUALS", "value": scene_rating}
+            },
+            filter={
+                "per_page": "-1"
+            },
+            get_count=True
+        )
+    else:
+        scene_count, scenes = stash.find_scenes(
+            f={
+                "file_count": {"modifier": "GREATER_THAN", "value": 1},
+                "tags": {"modifier": "EXCLUDES", "value": find_scenes_tag}
+            },
+            filter={
+                "per_page": "-1"
+            },
+            get_count=True
+        )
     return scene_count, scenes
 
 
