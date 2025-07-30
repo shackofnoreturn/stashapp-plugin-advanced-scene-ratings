@@ -4,16 +4,17 @@ import sys
 import re
 import json
 
-# Variables
+# CONSTANTS
 TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
 
 settings = {
     "categories": "video_quality,acting,camera,story,intensity,chemistry",
     "minimum_required_tags": 5
 }
-log.debug(f"Displaying contents of `settings`: {settings}")
+log.debug(f"SETTINGS: {settings}")
 
-SVG_IMAGE = (
+# TAGS
+SVG_IMAGE_PARENT = (
     "data:image/svg+xml;base64,PCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIi"
     "AiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KDTwhLS0gVXBsb2FkZW"
     "QgdG86IFNWRyBSZXBvLCB3d3cuc3ZncmVwby5jb20sIFRyYW5zZm9ybWVkIGJ5OiBTVkcgUmVwbyBNaXhlciBUb2"
@@ -26,71 +27,84 @@ SVG_IMAGE = (
     "MgNy4wMjk0NCA3LjAyOTQ0IDMgMTIgM0MxNi45NzA2IDMgMjEgNy4wMjk0NCAyMSAxMloiIHN0cm9rZT0iI2ZmZm"
     "ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPiA8L2c+Cg08L3N2Zz4="
 )
-
 tag_rating_parent = {
     "name": "Advanced Rating System",
     "description": "Advanced Rating System: Parent tag for all rating categories",
-    "image": SVG_IMAGE
+    "image": SVG_IMAGE_PARENT
 }
 
+# MAIN
 def main():
-    log.info(f"Starting Stash Advanced Rating Plugin ...")
-    global stash
-
+    # TODO - Add check if load action was successful
+    log.info(f"Loading user settings ...")
     global json_input
     json_input = json.loads(sys.stdin.read())
 
-    log.debug(f"Initializing Stash Interface with server connection: {json_input['server_connection']}")
+    # TODO - Add check if connection was successful
+    log.info(f"Initializing stash interface: {json_input['server_connection']}")
+    global stash
     stash = StashInterface(json_input["server_connection"])
 
+    # TODO - Add check if getting configuration was successful
     log.info(f"Retrieving plugin configuration ...")
     config = stash.get_configuration()["plugins"]
-    log.debug(f"Displaying contents of `config`: {config}")
-
+    log.debug(f"Config: {config}")
     if "stashAppAdvancedRating" in config:
+        # TODO Check if update is successful
         settings.update(config["stashAppAdvancedRating"])
-        log.debug(f"Here's the entire SETTINGS varoble after changes: {settings}")
-
-    # Final settings
+        log.debug(f"Here's the entire SETTINGS variable after changes: {settings}")
+    log.info(f"User preferences:")
+    global categories
     categories = settings["categories"].split(",") if settings["categories"] else []
+    log.info(f"Categories: {categories}")
+    log.info(f"Getting minimum required ...")
+    global minimum_required_tags
     minimum_required_tags = settings["minimum_required_tags"]
-    log.info(f"And here are the final categories: {categories} - and min tags: {minimum_required_tags}")
+    log.info(f"Minimum Required Tags: {minimum_required_tags}")
 
+    # ACTIONS
+    # Plugin action buttons
     mode_arg = json_input["args"]["mode"]
+    option_arg = json_input["args"]["allScenes"]
     if mode_arg == "process_scenes":
-        processScenes(stash, categories, minimum_required_tags)
+        processScenes(stash, categories, minimum_required_tags, allScenes=True)
+    if mode_arg == "process_scenes_unrated":
+        processScenes(stash, categories, minimum_required_tags, allScenes=False)
     if mode_arg == "create_tags":
         createTags(categories)
     if mode_arg == "remove_tags":
         removeTags(categories)
 
+    # Plugin action hooks
     if "hookContext" in json_input["args"]:
         id = json_input["args"]["hookContext"]["id"]
         if json_input["args"]["hookContext"]["type"] == "Scene.Update.Post":
-            stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
+            # stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
             scene = stash.find_scene(id)
             processScene(scene)
             log.debug(f"Made it through the hook ...")
 
+# FUNCTIONS
 def processScene(scene):
     log.debug("processing scene: %s" % (scene["id"],))
-    # When the scene does not meet minimum_required_tags, skip it
-    if False:
-        pass
+    if scene:
+        # Check if scene has equal or more than the minimum required tags
+        calculate_rating(stash, scene, categories, minimum_required_tags)
     else:
         log.debug("skipping scene")
 
-def processScenes(stash, categories, minimum_required_tags):
-    log.info(f"Processing all scenes ...")
-    scenes = stash.find_scenes({})
+def processScenes(stash, categories, minimum_required_tags, allScenes=True):
+    global scenes
+    
+    if allScenes:
+        log.info(f"Processing all scenes ...")
+        scenes = stash.find_scenes({})
+    else:
+        log.info(f"Processing unrated scenes ...")
+        scenes = stash.find_scenes({}, None)
+    
     for scene in scenes:
-        calculate_rating_for_scene(stash, scene, categories, minimum_required_tags)
-        if "scene_id" in json_input["args"]:
-            scene = stash.find_scene(json_input["args"]["scene_id"])
-            processScene(scene)
-        # else:
-            # processScenes()
-
+        calculate_rating(stash, scene, categories, minimum_required_tags)
 
 def find_tag(name, create=False):
     find_tag_tag = stash.find_tag(name, create)
@@ -130,29 +144,29 @@ def createTags(categories):
             #     stash.create_tag(name=num_tag_name, parent_id=cat_tag["id"])
             #     log.info(f"Created numbered tag: {num_tag_name} under {cat}")
 
-def removeTags(categories):
-    log.info(f"Removing tags ...")
-    for cat in categories:
-        remove_tag(cat)
-        
 def remove_tag(name):
     remove_tag_tag = find_tag(name)
     if remove_tag_tag is not None:
         stash.destroy_tag(remove_tag_tag['id'])
         log.info(f"Deleted Tag - ID:{remove_tag_tag['id']}: Name: {remove_tag_tag['name']}")
 
+def removeTags(categories):
+    log.info(f"Removing tags ...")
+    for cat in categories:
+        remove_tag(cat)
 
-def find_scenes(find_scenes_tag):
+def find_scenes(find_scenes_tag, scene_rating):
     scene_count, scenes = stash.find_scenes(
-    f={
-        "file_count": {"modifier": "GREATER_THAN", "value": 1},
-        "tags": {"modifier": "EXCLUDES", "value": find_scenes_tag},
-    },
-    filter={
-        "per_page": "-1"
-    },
-    get_count=True,
-)
+        f={
+            "file_count": {"modifier": "GREATER_THAN", "value": 1},
+            "tags": {"modifier": "EXCLUDES", "value": find_scenes_tag},
+            "rating": {"modifier": "EQUALS", "value": scene_rating}
+        },
+        filter={
+            "per_page": "-1"
+        },
+        get_count=True
+    )
     return scene_count, scenes
 
 
@@ -176,7 +190,7 @@ def get_plugin_settings(stash):
 
 
 # Calculate rating for a scene based on its tags
-def calculate_rating_for_scene(stash, scene, categories, minimum_required_tags ):
+def calculate_rating(stash, scene, categories, minimum_required_tags ):
     log.info(f"Calculating rating of scene {scene['title']} based on it's tags ...")
     tags = [tag['name'] for tag in scene['tags']]
     scores = {}

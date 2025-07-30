@@ -27,11 +27,19 @@ tasks:
     description: Calculate and (re)apply ratings to all scenes
     defaultArgs:
       mode: process_scenes
+
+  - name: Process Unrated Scenes
+    description: Calculate and apply ratings to all unrated scenes
+    defaultArgs:
+      mode: process_scenes_unrated
+      allScenes: False
+
   - name: Create Tags
     description: Create tags for each rating category
     defaultArgs:
       mode: create_tags
+
   - name: Remove Tags
-    description: Remove tags for each rating category
+    description: Remove all tags created by this plugin
     defaultArgs:
       mode: remove_tags
