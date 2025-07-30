@@ -11,7 +11,6 @@ settings = {
     "categories": "video_quality,acting,camera,story,intensity,chemistry",
     "minimum_required_tags": 5
 }
-log.debug(f"SETTINGS: {settings}")
 
 # TAGS
 SVG_IMAGE_PARENT = (
