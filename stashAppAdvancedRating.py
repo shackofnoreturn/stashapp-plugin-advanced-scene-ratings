@@ -179,16 +179,20 @@ def find_tag(name, create=False, parent_id=None):
         if create:
             log.info(f"CREATE TAG: {name}")
             try:
+                # Create without parent_id (not supported in create_tag)
                 tag = stash.create_tag({"name": name})
                 if tag:
                     log.info(f"CREATE TAG: {tag['name']} created")
-                    # Assign parent after creation
+                    # Parent must be set via update_tag
                     if parent_id:
-                        stash.update_tag({
-                            "id": tag["id"],
-                            "parent_id": parent_id
-                        })
-                        log.info(f"UPDATE TAG: Set parent of {tag['name']} to {parent_id}")
+                        try:
+                            stash.update_tag({
+                                "id": tag["id"],
+                                "parent_id": parent_id
+                            })
+                            log.info(f"UPDATE TAG: Set parent of {tag['name']} to {parent_id}")
+                        except Exception as e:
+                            log.error(f"UPDATE TAG ERROR: {e}")
                 else:
                     log.error(f"CREATE TAG: Failed to create {name}")
             except Exception as e:
