@@ -255,6 +255,7 @@ def calculate_rating(stash, scene, categories, minimum_required_tags ):
     log.debug(f"SCORES: {scores}")
     if len(scores) < minimum_required_tags:
         log.info(f"CALCULATE RATING: SKIPPED")
+        return
 
     average = sum(scores.get(cat, 0) for cat in categories) / len(categories)
     final_rating = round(average)
