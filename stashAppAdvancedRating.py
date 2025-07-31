@@ -117,10 +117,10 @@ def main():
     
     # Hooks
     if "hookContext" in json_input["args"]:
-        id = json_input["args"]["hookContext"]["id"]
+        sceneID = json_input["args"]["hookContext"]["id"]
         if json_input["args"]["hookContext"]["type"] == "Scene.Update.Post":
             # stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
-            scene = stash.find_scene(id)
+            scene = stash.find_scene(sceneID)
             processScene(scene)
 
 
@@ -264,10 +264,7 @@ def calculate_rating(stash, scene, categories, minimum_required_tags ):
     log.debug(f"CURRENT RATING: {current_rating}")
     log.debug(f"FINAL RATING: {final_rating}")
     try:
-        stash.update_scene({
-            "id": scene['id'],
-            "rating": final_rating
-        })
+        stash.update_scene( {"id": scene["id"], "rating": 1} )
         log.info(f"CALCULATE RATING: Scene {scene['id']} updated with rating {final_rating}")
     except Exception as e:
         log.error(f"CALCULATE RATING: Failed to update scene {scene['id']}: {e}")
