@@ -172,56 +172,51 @@ def find_scenes(find_scenes_tag, scene_rating):
     return scene_count, scenes
 
 
-def find_tag(name, create=False):
-    find_tag_tag = stash.find_tag(name, create)
-    if find_tag_tag is None:
-        log.info(f"FIND TAG: {name} cannot be found")
+def find_tag(name, create=False, parent_id=None):
+    tag = stash.find_tag(name, create=False)
+    if tag is None:
+        log.info(f"FIND TAG: {name} not found")
+        if create:
+            log.info(f"CREATE TAG: {name}")
+            try:
+                tag = stash.create_tag({"name": name, "parent_id": parent_id})
+                if tag:
+                    log.info(f"CREATE TAG: {tag['name']} created")
+                else:
+                    log.error(f"CREATE TAG: Failed to create {name}")
+            except Exception as e:
+                log.error(f"CREATE TAG ERROR: {e}")
+                tag = None
     else:
-        log.info(f"FIND TAG: {find_tag_tag['name']} found")
-    return find_tag_tag
+        log.info(f"FIND TAG: {tag['name']} found")
+    return tag
+
 
 def create_tag(obj):
     created_tag = stash.create_tag(obj)
     if created_tag is None:
         log.error(f"CREATE TAG: {obj['name']} already exists")
-        return find_tag(obj["name"], loose=True)
+        return find_tag(obj["name"])
     else:
         log.info(f"CREATE TAG: {created_tag['name']} created")
         return created_tag
 
 def createTags(categories):
-    log.info(f"CREATE TAGS: IN PROGRESS ...")
-    find_rating_parent = find_tag(TAG_RATING_PARENT, loose=True)
-    if find_rating_parent is None:
-        find_rating_parent = create_tag(TAG_RATING_PARENT)
-        log.info(f"CREATE TAGS: Created root parent tag")
+    log.info("CREATE TAGS: IN PROGRESS ...")
+
+    # Ensure root parent exists or is created
+    find_rating_parent = find_tag(TAG_RATING_PARENT["name"], create=True)
     parent_id = find_rating_parent["id"]
 
-    # For each category, create category tag under Advanced Rating
     for cat in categories:
-        cat_tag = find_tag(cat, loose=True)
-        if not cat_tag:
-            cat_tag = stash.create_tag({
-                "name": cat,
-                "parent_id": parent_id
-            })
-            log.info(f"CREATE TAGS: Created {cat}")
-        else:
-            log.debug(f"CREATE TAGS: Category tag {cat} already exists")
+        # Create category tag under the root
+        cat_tag = find_tag(cat, create=True, parent_id=parent_id)
         cat_id = cat_tag["id"]
 
-        # Create numbered child tags (1 to 5)
+        # Create numbered subtags under the category tag
         for i in range(1, 6):
             num_tag_name = f"{cat}_{i}"
-            num_tag = find_tag(num_tag_name, loose=True)
-            if not num_tag:
-                num_tag = create_tag({
-                    "name": num_tag_name,
-                    "parent_id": cat_id
-                })
-                log.info(f"CREATE TAGS: Created {num_tag_name} under {cat}")
-            else:
-                log.debug(f"CREATE TAGS: Tag {num_tag_name} already exists")
+            find_tag(num_tag_name, create=True, parent_id=cat_id)
 
 def remove_tag(name):
     remove_tag_tag = find_tag(name)
