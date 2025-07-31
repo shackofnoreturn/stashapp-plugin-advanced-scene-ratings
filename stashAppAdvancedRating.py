@@ -179,9 +179,16 @@ def find_tag(name, create=False, parent_id=None):
         if create:
             log.info(f"CREATE TAG: {name}")
             try:
-                tag = stash.create_tag({"name": name, "parent_id": parent_id})
+                tag = stash.create_tag({"name": name})
                 if tag:
                     log.info(f"CREATE TAG: {tag['name']} created")
+                    # Assign parent after creation
+                    if parent_id:
+                        stash.update_tag({
+                            "id": tag["id"],
+                            "parent_id": parent_id
+                        })
+                        log.info(f"UPDATE TAG: Set parent of {tag['name']} to {parent_id}")
                 else:
                     log.error(f"CREATE TAG: Failed to create {name}")
             except Exception as e:
@@ -204,19 +211,28 @@ def create_tag(obj):
 def createTags(categories):
     log.info("CREATE TAGS: IN PROGRESS ...")
 
-    # Ensure root parent exists or is created
-    find_rating_parent = find_tag(TAG_RATING_PARENT["name"], create=True)
-    parent_id = find_rating_parent["id"]
+    # Ensure root tag exists or create it
+    root_tag = find_tag(TAG_RATING_PARENT["name"], create=True)
+    if not root_tag:
+        log.error("CREATE TAGS: Failed to create or retrieve root tag.")
+        return
+    parent_id = root_tag["id"]
 
     for cat in categories:
-        # Create category tag under the root
+        # Create the main category tag under root
         cat_tag = find_tag(cat, create=True, parent_id=parent_id)
+        if not cat_tag:
+            log.error(f"CREATE TAGS: Failed to create or retrieve tag for {cat}")
+            continue  # Skip this category if it failed
         cat_id = cat_tag["id"]
 
-        # Create numbered subtags under the category tag
+        # Create numbered child tags under category
         for i in range(1, 6):
             num_tag_name = f"{cat}_{i}"
-            find_tag(num_tag_name, create=True, parent_id=cat_id)
+            num_tag = find_tag(num_tag_name, create=True, parent_id=cat_id)
+            if not num_tag:
+                log.error(f"CREATE TAGS: Failed to create subtag {num_tag_name}")
+                continue
 
 def remove_tag(name):
     remove_tag_tag = find_tag(name)
