@@ -1,19 +1,11 @@
-import stashapi.log as log
 from stashapi.stashapp import StashInterface
+import stashapi.log as log
 import sys
 import re
 import json
 
-# CONSTANTS
-TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
-
-settings = {
-    "categories": "video_quality,acting,camera,story,intensity,chemistry",
-    "minimum_required_tags": 5
-}
-log.debug(f"SETTINGS-PRE: {settings}")
-
 # TAGS
+TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
 SVG_IMAGE_PARENT = (
     "data:image/svg+xml;base64,PCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIi"
     "AiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KDTwhLS0gVXBsb2FkZW"
@@ -27,14 +19,23 @@ SVG_IMAGE_PARENT = (
     "MgNy4wMjk0NCA3LjAyOTQ0IDMgMTIgM0MxNi45NzA2IDMgMjEgNy4wMjk0NCAyMSAxMloiIHN0cm9rZT0iI2ZmZm"
     "ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPiA8L2c+Cg08L3N2Zz4="
 )
-tag_rating_parent = {
+TAG_RATING_PARENT = {
     "name": "Advanced Rating System",
     "description": "Advanced Rating System: Parent tag for all rating categories",
     "image": SVG_IMAGE_PARENT
 }
 
+# GLOBALS
+settings = {
+    "categories": "video_quality,acting,camera,story,intensity,chemistry",
+    "minimum_required_tags": 5
+}
+log.debug(f"SETTINGS-PRE: {settings}")
+
+
 # MAIN
 def main():
+    # get_plugin_settings(stash)
     log.info(f"USER SETTINGS: LOADING ...")
     try:
         raw_input = sys.stdin.read()
@@ -98,6 +99,7 @@ def main():
     except Exception as e:
         log.error(f"PLUGIN CONFIGURATION: Failed to load minimum required tags: {e}")
         minimum_required_tags = None
+    log.info("PLUGIN CONFIGURATION: OK")
 
 
     # ACTIONS
@@ -120,7 +122,6 @@ def main():
             # stash.run_plugin_task("stashAppAdvancedRating", "Process all", args={"scene_id": id})
             scene = stash.find_scene(id)
             processScene(scene)
-            log.debug(f"Made it through the hook ...")
 
 
 # FUNCTIONS
@@ -140,6 +141,7 @@ def processScenes(stash, categories, minimum_required_tags, allScenes=True):
         log.info("PROCESSING SCENES: UNRATED ...")
         scenes = stash.find_scenes({})
     
+    log.info(f"SCENES {scenes}")
     for scene in scenes:
         calculate_rating(stash, scene, categories, minimum_required_tags)
 
@@ -174,7 +176,7 @@ def find_scenes(find_scenes_tag, scene_rating):
 def find_tag(name, create=False):
     find_tag_tag = stash.find_tag(name, create)
     if find_tag_tag is None:
-        log.error(f"FIND TAG: {name} cannot be found")
+        log.info(f"FIND TAG: {name} cannot be found")
     else:
         log.info(f"FIND TAG: {find_tag_tag['name']} found")
     return find_tag_tag
@@ -182,22 +184,22 @@ def find_tag(name, create=False):
 def create_tag(obj):
     create_tag_tag = stash.create_tag(obj)
     if create_tag_tag is None:
-        log.error(f"CREATE TAG: {tag_rating_parent["name"]} already exists")
+        log.error(f"CREATE TAG: {TAG_RATING_PARENT["name"]} already exists")
     else:
         log.info(f"CREATE TAG: {create_tag_tag['name']} created")
     return create_tag_tag
 
 def createTags(categories):
     log.info(f"CREATE TAGS: IN PROGRESS ...")
-    find_rating_parent = find_tag(tag_rating_parent)
+    find_rating_parent = find_tag(TAG_RATING_PARENT)
     if find_rating_parent is None:
-        find_rating_parent = create_tag(tag_rating_parent)
+        find_rating_parent = create_tag(TAG_RATING_PARENT)
         log.info(f"CREATE TAGS: Created parent tag")
     parent_id = find_rating_parent["id"]
 
     # For each category, create category tag under Advanced Rating
     for cat in categories:
-        cat_tag = find_tag(cat, create=True)
+        cat_tag = find_tag(cat, True)
         if not cat_tag:
             # cat_tag = stash.create_tag(name=cat, parent_id=parent_id)
             log.info(f"CREATE TAGS: Created {cat}")
@@ -239,9 +241,8 @@ def get_plugin_settings(stash):
     return categories, minimum_required_tags
 
 
-# Calculate rating for a scene based on its tags
 def calculate_rating(stash, scene, categories, minimum_required_tags ):
-    log.info(f"Calculating rating of scene {scene['title']} based on it's tags ...")
+    log.info(f"CALCULATE RATING: {scene['title']}")
     tags = [tag['name'] for tag in scene['tags']]
     scores = {}
     for tag in tags:
@@ -251,19 +252,24 @@ def calculate_rating(stash, scene, categories, minimum_required_tags ):
             if category in categories:
                 scores[category] = int(score)
 
+    log.debug(f"SCORES: {scores}")
     if len(scores) < minimum_required_tags:
-        log.info(f"Scene '{scene['title']}' skipped, not enough rating tags {scores}")
-        return 1
+        log.info(f"CALCULATE RATING: SKIPPED")
 
     average = sum(scores.get(cat, 0) for cat in categories) / len(categories)
     final_rating = round(average)
     current_rating = scene.get("rating") or 0
 
-    if current_rating != final_rating:
-        log.info(f"Updating scene '{scene['title']}` rating from {current_rating} to {final_rating}")
-        stash.update_scene(scene_id=scene['id'], rating=final_rating)
-    else:
-        log.info(f"Scene '{scene['title']}' rating unchanged at {current_rating}")
+    log.debug(f"CURRENT RATING: {current_rating}")
+    log.debug(f"FINAL RATING: {final_rating}")
+    try:
+        stash.update_scene({
+            "id": scene['id'],
+            "rating": final_rating
+        })
+        log.info(f"CALCULATE RATING: Scene {scene['id']} updated with rating {final_rating}")
+    except Exception as e:
+        log.error(f"CALCULATE RATING: Failed to update scene {scene['id']}: {e}")
 
 if __name__ == "__main__":
     main()
