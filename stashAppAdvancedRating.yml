@@ -1,6 +1,6 @@
 name: Advanced Rating System
 description: Rate scenes based on advanced criteria using tags
-version: 0.1.12
+version: 0.1.15
 url: https://github.com/shackofnoreturn/stashapp-plugin-advanced-scene-ratings
 exec:
   - python
@@ -11,16 +11,17 @@ settings:
     displayName: "Categories"
     description: "Comma-separated list of rating categories (e.g., acting,camera,story,intensity,chemistry)"
     type: STRING
+    default: "acting,camera,story,intensity,chemistry"
   minimum_required_tags:
     displayName: "Minimum Required Tags"
     description: "Minimum number of tags needed to rate a scene"
     type: NUMBER
-
-hooks:
-  - name: Process Scene
-    description: Calculate and apply rating when a scene is updated
-    triggeredBy:
-      - Scene.Update.Post
+    default: 5
+  allow_destructive_actions:
+    displayName: "Allow Destructive Actions"
+    description: "Enable destructive actions like removing tags or ratings"
+    type: BOOLEAN
+    default: false
 
 tasks:
   - name: Process All Scenes
@@ -34,11 +35,17 @@ tasks:
       mode: process_scenes_unrated
 
   - name: Create Tags
-    description: Create tags for each rating category
+    description: Generates required plugin tags
     defaultArgs:
       mode: create_tags
 
   - name: Remove Tags
-    description: Remove all tags created by this plugin
+    description: Remove all plugin generated tags
     defaultArgs:
       mode: remove_tags
+
+hooks:
+  - name: Process Scene
+    description: Calculate and apply a rating when scene is updated
+    triggeredBy:
+      - Scene.Update.Post
