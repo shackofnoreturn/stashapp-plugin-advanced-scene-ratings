@@ -188,7 +188,7 @@ def find_tag(name, create=False, parent_id=None):
                         try:
                             stash.update_tag({
                                 "id": tag["id"],
-                                "parents": [parent_id]
+                                "parent_ids": [parent_id]
                             })
                             log.info(f"UPDATE TAG: Set parent of {tag['name']} to {parent_id}")
                         except Exception as e:
@@ -298,7 +298,7 @@ def calculate_rating(stash, scene, categories, minimum_required_tags ):
     log.debug(f"CURRENT RATING: {current_rating}")
     log.debug(f"FINAL RATING: {final_rating}")
     try:
-        stash.update_scene( {"id": scene["id"], "rating100": 1} )
+        stash.update_scene( {"id": scene["id"], "rating100": final_rating} )
         log.info(f"CALCULATE RATING: Scene {scene['id']} updated with rating {final_rating}")
     except Exception as e:
         log.error(f"CALCULATE RATING: Failed to update scene {scene['id']}: {e}")
