@@ -21,13 +21,17 @@ SVG_TAG_IMG = (
 )
 TAG_RATING_PARENT = {
     "name": "Advanced Rating System",
-    "description": "Advanced Rating System: Parent tag for all rating categories",
+    "sort_name": "#Advanced Rating System",
+    "description": "Parent tag for all rating categories.",
+    "aliases": [],
+    "auto_ignore_tag": True,
+    "favorite": True,
     "image": SVG_TAG_IMG
 }
 
 # GLOBALS
 settings = {
-    "categories": "video_quality,acting,camera,story,intensity,chemistry",
+    "categories": "Video Quality, Audio Fidelity, Chemistry, Decoration, Storytelling",
     "minimum_required_tags": 5,
     "allow_destructive_actions": False
 }
@@ -35,6 +39,7 @@ settings = {
 
 # MAIN
 def main():
+    log.debug("RUNNING ...")
     global json_input, stash, categories, minimum_required_tags
 
     json_input = read_stdin_json()
@@ -52,7 +57,7 @@ def main():
 
 # MAIN FUNCTIONS
 def read_stdin_json():
-    log.info("READING INPUT ...")
+    log.debug("READING INPUT ...")
     try:
         raw_input = sys.stdin.read()
         if not raw_input.strip():
@@ -65,7 +70,7 @@ def read_stdin_json():
     return {}
 
 def connect_to_stash(json_input):
-    log.info("CONNECTING STASH INTERFACE ...")
+    log.debug("CONNECTING STASH INTERFACE ...")
     try:
         server_connection = json_input["server_connection"]
         return StashInterface(server_connection)
@@ -76,7 +81,7 @@ def connect_to_stash(json_input):
     return None
 
 def load_plugin_config(stash):
-    log.info("LOADING PLUGIN CONFIGURATION ...")
+    log.debug("LOADING PLUGIN CONFIGURATION ...")
     try:
         return stash.get_configuration().get("plugins", {})
     except Exception as e:
@@ -84,7 +89,7 @@ def load_plugin_config(stash):
         return {}
 
 def update_settings_from_config(config):
-    log.info("UPDATING SETTINGS WITH CONFIG ...")
+    log.debug("UPDATING SETTINGS WITH CONFIG ...")
     try:
         if "stashAppAdvancedRating" in config:
             settings.update(config["stashAppAdvancedRating"])
@@ -93,7 +98,7 @@ def update_settings_from_config(config):
         log.error(f"PLUGIN CONFIGURATION: Failed to update settings: {e}")
 
 def get_categories():
-    log.info("GET CATEGORIES ...")
+    log.debug("GET CATEGORIES ...")
     try:
         cats = settings.get("categories", "")
         result = cats.split(",") if cats else []
@@ -104,7 +109,7 @@ def get_categories():
         return []
 
 def get_minimum_required_tags():
-    log.info("GET MINIMUM REQUIREMENT ...")
+    log.debug("GET MINIMUM REQUIREMENT ...")
     try:
         value = settings["minimum_required_tags"]
         log.debug(f"MINIMUM REQUIRED TAGS: {value}")
@@ -116,7 +121,7 @@ def get_minimum_required_tags():
     return None
 
 def get_allow_destructive_actions():
-    log.info("GET ALLOW DESTRUCTIVE ACTIONS ...")
+    log.debug("GET ALLOW DESTRUCTIVE ACTIONS ...")
     try:
         global allow_destructive_actions
         allow_destructive_actions = settings.get("allow_destructive_actions", False)
@@ -126,7 +131,7 @@ def get_allow_destructive_actions():
         allow_destructive_actions = False
 
 def handle_actions(json_input, stash, categories, minimum_required_tags):
-    log.info("HANDLING ACTION ...")
+    log.debug("HANDLING ACTIONS ...")
     args = json_input.get("args", {})
     mode = args.get("mode")
     if mode == "process_scenes":
@@ -139,7 +144,7 @@ def handle_actions(json_input, stash, categories, minimum_required_tags):
         removeTags(categories)
 
 def handle_hooks(json_input, stash):
-    log.info("HANDLING HOOK ...")
+    log.debug("HANDLING HOOKS ...")
     args = json_input.get("args", {})
     hook = args.get("hookContext", {})
     if hook.get("type") == "Scene.Update.Post":
@@ -148,7 +153,6 @@ def handle_hooks(json_input, stash):
         processScene(scene)   
 
 def calculate_rating(stash, scene, categories, minimum_required_tags ):
-    log.info(f"CALCULATE RATING: {scene['title']}")
     tags = [tag['name'] for tag in scene['tags']]
     scores = {}
     for tag in tags:
@@ -162,6 +166,7 @@ def calculate_rating(stash, scene, categories, minimum_required_tags ):
     if len(scores) < minimum_required_tags:
         log.debug(f"CALCULATE RATING: SKIPPED")
     else:
+        log.info(f"CALCULATE RATING: {scene['title']}")
         average = sum(scores.get(cat, 0) for cat in categories) / len(categories)
         final_rating = round(average * 20)  # Convert to 0-100 scale
         current_rating = scene.get("rating100") or 0
@@ -239,10 +244,24 @@ def find_tag(name, create=False, parent_id=None):
                         try:
                             stash.update_tag({
                                 "id": tag["id"],
-                                "parent_ids": [parent_id],
-                                "image": SVG_TAG_IMG
+                                "sort_name": f"#{name}",
+                                "description": TAG_RATING_PARENT["description"],
+                                "ignore_auto_tag": True,
+                                "image": SVG_TAG_IMG,
+                                "parent_ids": [parent_id]
                             })
                             log.debug(f"FIND TAG: Set parent of {tag['name']} to {parent_id}")
+                        except Exception as e:
+                            log.error(f"FIND TAG ERROR: {e}")
+                    else:
+                        try:
+                            stash.update_tag({
+                                "id": tag["id"],
+                                "sort_name": f"#{name}",
+                                "description": TAG_RATING_PARENT["description"],
+                                "ignore_auto_tag": True,
+                                "image": SVG_TAG_IMG
+                            })
                         except Exception as e:
                             log.error(f"FIND TAG ERROR: {e}")
                 else:
@@ -303,7 +322,7 @@ def remove_tag(name):
 def removeTags(categories):
     log.info(f"REMOVING TAGS ...")
     if not allow_destructive_actions:
-        log.warning("REMOVE TAGS: Destructive actions are disabled. Enable 'allow_destructive_actions' in plugin settings to proceed.")
+        log.warning("REMOVING TAGS: Destructive actions are disabled. Enable 'allow_destructive_actions' in plugin settings to proceed.")
         return
 
     # Remove root tag
