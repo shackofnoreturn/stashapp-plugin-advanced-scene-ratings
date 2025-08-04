@@ -39,7 +39,7 @@ settings = {
 
 # MAIN
 def main():
-    log.debug("RUNNING ...")
+    log.info("RUNNING ...")
     global json_input, stash, categories, minimum_required_tags
 
     json_input = read_stdin_json()

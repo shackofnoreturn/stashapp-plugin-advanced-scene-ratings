@@ -20,7 +20,7 @@
 3. Under "Available Plugins" click on "Add Source" button
 4. Fill in these fields and click "Confirm"
 - Name: Advanced Rating System
-- Source URL: ```https://github.com/shackofnoreturn/stashapp-plugin-advanced-scene-ratings.git```
+- Source URL: https://shackofnoreturn.github.io/stashapp-plugin-advanced-scene-ratings/main/index.yml
 5. Unfold "Advanced Rating System" under "Available Plugins" and click the checkmark next to the desired plugins
 6. Click "Install" button in the upper right corner
 
