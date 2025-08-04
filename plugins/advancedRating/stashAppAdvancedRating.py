@@ -1,7 +1,6 @@
 import sys
 import re
 import json
-import time
 
 try:
     import stashapi.log as log
@@ -49,8 +48,7 @@ settings = {
 # MAIN
 def main():
     log.info("RUNNING ...")
-    global json_input, stash, categories, minimum_required_tags, processed_scene_ids
-    processed_scene_ids = set()
+    global json_input, stash, categories, minimum_required_tags
 
     json_input = read_stdin_json()
     stash = connect_to_stash(json_input)
@@ -159,9 +157,8 @@ def handle_hooks(json_input, stash):
     hook = args.get("hookContext", {})
     if hook.get("type") == "Scene.Update.Post":
         sceneID = hook.get("id")
-        # scene = stash.find_scene(sceneID)
-        handle_scene_update(sceneID)
-    time.sleep(0.2)
+        scene = stash.find_scene(sceneID)
+        processScene(scene)
 
 
 def calculate_rating(stash, scene, categories, minimum_required_tags ):
@@ -192,20 +189,6 @@ def calculate_rating(stash, scene, categories, minimum_required_tags ):
 
 
 # SCENES
-def handle_scene_update(scene_id):
-    if scene_id in processed_scene_ids:
-        log.debug(f"Scene {scene_id} already processed. Skipping.")
-        return
-    processed_scene_ids.add(scene_id)
-
-    scene = stash.find_scene(scene_id)
-    if not scene:
-        log.warning(f"Scene {scene_id} not found.")
-        return
-
-    processScene(scene)
-
-
 def processScene(scene):
     if scene:
         log.debug("PROCESSING SCENE: %s" % (scene["id"],))
