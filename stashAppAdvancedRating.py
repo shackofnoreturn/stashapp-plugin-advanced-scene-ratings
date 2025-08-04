@@ -166,14 +166,12 @@ def calculate_rating(stash, scene, categories, minimum_required_tags ):
     if len(scores) < minimum_required_tags:
         log.debug(f"CALCULATE RATING: SKIPPED")
     else:
-        log.info(f"CALCULATE RATING: {scene['title']}")
+        log.debug(f"CALCULATE RATING: {scene['title']}")
         average = sum(scores.get(cat, 0) for cat in categories) / len(categories)
         final_rating = round(average * 20)  # Convert to 0-100 scale
         current_rating = scene.get("rating100") or 0
 
-        log.debug(f"AVERAGE CALCULATION: {average}")
-        log.debug(f"CURRENT RATING: {current_rating}")
-        log.debug(f"FINAL RATING: {final_rating}")
+        log.debug(f"CURRENT: {current_rating}/100, AVERAGE: {average}/5, NEW: {final_rating}/100")
         try:
             stash.update_scene( {"id": scene["id"], "rating100": final_rating} )
             log.info(f"CALCULATE RATING: Scene {scene['id']} updated with rating {final_rating}")
@@ -184,7 +182,7 @@ def calculate_rating(stash, scene, categories, minimum_required_tags ):
 # SCENES
 def processScene(scene):
     if scene:
-        log.info("PROCESSING SCENE: %s" % (scene["id"],))
+        log.debug("PROCESSING SCENE: %s" % (scene["id"],))
         calculate_rating(stash, scene, categories, minimum_required_tags)
     else:
         log.debug("PROCESSING SCENE: SKIPPING ...")
@@ -301,7 +299,7 @@ def createTags(categories):
         cat_id = cat_tag["id"]
 
         # Create numbered child tags under category
-        for i in range(1, 6):
+        for i in range(0, 6):
             num_tag_name = f"{cat}: {i}"
             num_tag = find_tag(num_tag_name, create=True, parent_id=cat_id)
             if not num_tag:
@@ -331,7 +329,7 @@ def removeTags(categories):
         # Remove rating category tags
         remove_tag(cat)
         # Remove numbered child tags under each category
-        for i in range(1, 6):
+        for i in range(0, 6):
             num_tag_name = f"{cat}: {i}"
             remove_tag(num_tag_name)
 

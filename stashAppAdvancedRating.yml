@@ -1,6 +1,6 @@
 name: Advanced Rating System
 description: Rate scenes based on advanced criteria using tags
-version: 0.1.18
+version: 0.1.19
 url: https://github.com/shackofnoreturn/stashapp-plugin-advanced-scene-ratings
 exec:
   - python
