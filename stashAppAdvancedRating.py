@@ -5,7 +5,7 @@ import re
 import json
 
 # TAGS
-TAG_PATTERN = re.compile(r"^([a-z_]+)_(\d)$")
+TAG_PATTERN = re.compile(r"^(.+?)\s*:\s*([1-5])$")
 SVG_TAG_IMG = (
     "data:image/svg+xml;base64,PCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIi"
     "AiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KDTwhLS0gVXBsb2FkZW"
@@ -22,7 +22,7 @@ SVG_TAG_IMG = (
 TAG_RATING_PARENT = {
     "name": "Advanced Rating System",
     "sort_name": "#Advanced Rating System",
-    "description": "Parent tag for all rating categories.",
+    "description": "Advanced Rating System",
     "aliases": [],
     "auto_ignore_tag": True,
     "favorite": True,
@@ -302,7 +302,7 @@ def createTags(categories):
 
         # Create numbered child tags under category
         for i in range(1, 6):
-            num_tag_name = f"{cat}_{i}"
+            num_tag_name = f"{cat}: {i}"
             num_tag = find_tag(num_tag_name, create=True, parent_id=cat_id)
             if not num_tag:
                 log.error(f"CREATE TAGS: Failed to create subtag {num_tag_name}")
@@ -315,7 +315,7 @@ def remove_tag(name):
             stash.destroy_tag(remove_tag_tag['id'])
             log.debug(f"REMOVE TAG: Removed {remove_tag_tag['name']}")
         else:
-            log.warning(f"REMOVE TAG: Tag '{name}' not found")
+            log.debug(f"REMOVE TAG: Tag '{name}' not found")
     except Exception as e:
         log.error(f"REMOVE TAG: Failed to remove tag '{name}' — {str(e)}")
 
@@ -332,7 +332,7 @@ def removeTags(categories):
         remove_tag(cat)
         # Remove numbered child tags under each category
         for i in range(1, 6):
-            num_tag_name = f"{cat}_{i}"
+            num_tag_name = f"{cat}: {i}"
             remove_tag(num_tag_name)
 
 if __name__ == "__main__":
