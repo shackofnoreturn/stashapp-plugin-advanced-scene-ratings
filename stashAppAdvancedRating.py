@@ -151,7 +151,7 @@ def find_scenes(find_scenes_tag, scene_rating):
             f={
                 "file_count": {"modifier": "GREATER_THAN", "value": 1},
                 "tags": {"modifier": "EXCLUDES", "value": find_scenes_tag},
-                "rating": {"modifier": "EQUALS", "value": scene_rating}
+                "rating100": {"modifier": "EQUALS", "value": scene_rating}
             },
             filter={
                 "per_page": "-1"
@@ -188,7 +188,7 @@ def find_tag(name, create=False, parent_id=None):
                         try:
                             stash.update_tag({
                                 "id": tag["id"],
-                                "parent_id": parent_id
+                                "parents": [parent_id]
                             })
                             log.info(f"UPDATE TAG: Set parent of {tag['name']} to {parent_id}")
                         except Exception as e:
@@ -246,8 +246,14 @@ def remove_tag(name):
 
 def removeTags(categories):
     log.info(f"REMOVE TAGS: IN PROGRESS ...")
+    remove_tag(TAG_RATING_PARENT["name"])
     for cat in categories:
         remove_tag(cat)
+
+        # Remove numbered child tags under category
+        for i in range(1, 6):
+            num_tag_name = f"{cat}_{i}"
+            remove_tag(num_tag_name)
 
 def get_plugin_settings(stash):
     log.info(f"Getting plugin settings ...")
@@ -285,13 +291,14 @@ def calculate_rating(stash, scene, categories, minimum_required_tags ):
         return
 
     average = sum(scores.get(cat, 0) for cat in categories) / len(categories)
-    final_rating = round(average)
-    current_rating = scene.get("rating") or 0
+    final_rating = round(average * 20)  # Convert to 0-100 scale
+    current_rating = scene.get("rating100") or 0
 
+    log.debug(f"AVERAGE CALCULATION: {average}")
     log.debug(f"CURRENT RATING: {current_rating}")
     log.debug(f"FINAL RATING: {final_rating}")
     try:
-        stash.update_scene( {"id": scene["id"], "rating": 1} )
+        stash.update_scene( {"id": scene["id"], "rating100": 1} )
         log.info(f"CALCULATE RATING: Scene {scene['id']} updated with rating {final_rating}")
     except Exception as e:
         log.error(f"CALCULATE RATING: Failed to update scene {scene['id']}: {e}")
