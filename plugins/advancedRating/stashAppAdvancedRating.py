@@ -5,7 +5,7 @@ import re
 import json
 
 # TAGS
-TAG_PATTERN = re.compile(r"^(.+?)\s*:\s*([1-5])$")
+TAG_PATTERN = re.compile(r"^(.+?)\s*:\s*([0-5])$")
 SVG_TAG_IMG = (
     "data:image/svg+xml;base64,PCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIi"
     "AiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KDTwhLS0gVXBsb2FkZW"
