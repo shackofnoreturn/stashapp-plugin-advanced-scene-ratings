@@ -50,6 +50,7 @@ settings = {
 def main():
     log.info("RUNNING ...")
     global json_input, stash, categories, minimum_required_tags, processed_scene_ids
+    processed_scene_ids = set()
 
     json_input = read_stdin_json()
     stash = connect_to_stash(json_input)
